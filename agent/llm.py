@@ -1,16 +1,11 @@
 """LLM gateway via InsForge `/api/ai/chat/completion`.
 
-Six models available out of the box:
-  anthropic/claude-sonnet-4.5
-  openai/gpt-4o-mini
-  google/gemini-3-pro-image-preview
-  deepseek/deepseek-v3.2
-  x-ai/grok-4.1-fast
-  minimax/minimax-m2.1
+Models available (verified): anthropic/claude-sonnet-4.5, openai/gpt-4o-mini,
+google/gemini-3-pro-image-preview, deepseek/deepseek-v3.2, x-ai/grok-4.1-fast,
+minimax/minimax-m2.1.
 
-Default = openai/gpt-4o-mini (cheap, smart enough for classification + plan
-synthesis steps that aren't Q&A-shaped — those still go through Hyperspell
-answer=True for citation grounding).
+Default = openai/gpt-4o-mini (fast, cheap, good for structured output).
+Cost-free per the InsForge AI gateway billing on this project.
 """
 from __future__ import annotations
 
@@ -18,22 +13,33 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Any
-
 
 DEFAULT_MODEL = "openai/gpt-4o-mini"
 
 
+def _url() -> str:
+    v = os.environ.get("INSFORGE_PROJECT_URL")
+    if not v:
+        raise RuntimeError("INSFORGE_PROJECT_URL missing")
+    return v
+
+
+def _key() -> str:
+    v = os.environ.get("INSFORGE_ACCESS_API_KEY")
+    if not v:
+        raise RuntimeError("INSFORGE_ACCESS_API_KEY missing")
+    return v
+
+
 def chat(
     *,
-    messages: list[dict[str, str]],
+    messages: list[dict],
     model: str = DEFAULT_MODEL,
     system_prompt: str | None = None,
     max_tokens: int = 800,
     temperature: float = 0.2,
-) -> dict[str, Any]:
-    """Single non-streaming chat call. Returns {text, metadata}."""
-    body: dict[str, Any] = {
+) -> dict:
+    body: dict = {
         "model": model,
         "messages": messages,
         "maxTokens": max_tokens,
@@ -42,12 +48,11 @@ def chat(
     if system_prompt:
         body["systemPrompt"] = system_prompt
 
-    url = os.environ["INSFORGE_PROJECT_URL"] + "/api/ai/chat/completion"
     req = urllib.request.Request(
-        url,
+        _url() + "/api/ai/chat/completion",
         data=json.dumps(body).encode(),
         headers={
-            "x-api-key": os.environ["INSFORGE_ACCESS_API_KEY"],
+            "x-api-key": _key(),
             "Content-Type": "application/json",
         },
         method="POST",
@@ -60,7 +65,6 @@ def chat(
 
 
 def ask(prompt: str, *, model: str = DEFAULT_MODEL, system_prompt: str | None = None) -> str:
-    """Single-turn convenience: returns the assistant's text only."""
     r = chat(
         messages=[{"role": "user", "content": prompt}],
         model=model,

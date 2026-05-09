@@ -20,8 +20,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from . import hyperspell, sandbox
+from . import questions as questions_mod
 from .cards import emit
-from .insforge import insert, update
+from .insforge import insert, list_rows, update
 
 
 @dataclass
@@ -126,6 +127,41 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
     teams = teams_for_paths(trigger.affected_paths)
     print(f"[loop] team mapping: { {t: len(fs) for t, fs in teams.items()} }")
 
+    # Phase 1.5 — fan out per-role clarifying questions BEFORE plan synthesis.
+    # Each question is grounded in the team-lead's history (Hyperspell). The
+    # agent emits these as `question` cards. In V2.5 we don't block the loop
+    # waiting for answers — we record the questions, then synthesize plans
+    # that explicitly reference what we'd want answered. Future v3: pause &
+    # await answers via a worker poll loop.
+    try:
+        qs = questions_mod.fan_out(
+            trigger_topic=trigger.trigger_source,
+            teams=list(teams.keys()),
+        )
+        for q in qs:
+            emit(
+                run_id=run_id,
+                org_id=org_id,
+                project_id=trigger.project_id,
+                card_type="question",
+                title=f"Question for {q.to_user_name or q.to_role} ({q.to_team})",
+                team_id=q.to_team,
+                body={
+                    "to_user": {"email": q.to_user_email, "name": q.to_user_name},
+                    "to_role": q.to_role,
+                    "text": q.text,
+                    "options": q.options,
+                    "free_text_ok": q.free_text_ok,
+                    "rationale": q.rationale,
+                    "documents": q.citations,
+                },
+                visibility={"read": ["*"], "act": [f"user:{q.to_user_email or ''}"]},
+                status="awaiting_answer",
+            )
+            print(f"[loop] question -> {q.to_user_name} ({q.to_team}): {q.text[:60]}")
+    except Exception as e:
+        print(f"[loop] question fan-out skipped: {e}")
+
     team_plans: dict[str, dict[str, Any]] = {}
     for team, files in teams.items():
         question = question_for(trigger=trigger, team=team, files=files)
@@ -146,7 +182,7 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
                 "question": question,
             },
             visibility={"read": ["*"], "act": [f"team:{team}"]},
-            status="planned" if plan["answer"] else "no_brain",
+            status="awaiting_approval",
         )
         print(f"[loop] team_plan {team}: {len(plan['documents'])} citations")
 
