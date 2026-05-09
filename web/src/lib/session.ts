@@ -1,7 +1,8 @@
 // Server-only helper. Reads cookies, returns the active session user (or null).
 // If the demo cookie is set, returns the seeded persona's user record from
 // the InsForge users table.
-import 'server-only';
+// NOTE: this module imports `next/headers` which is server-only by virtue of
+// that import — Next.js will throw if a client component tries to use it.
 import { cookies } from 'next/headers';
 import { PERSONAS } from './personas';
 

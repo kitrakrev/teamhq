@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Card as CardRow } from '@/lib/insforge';
 import { TEAM_INK, TEAM_LABEL, leadOfTeam, type Persona } from '@/lib/personas';
 import { Glyph, type GlyphKey } from './Glyph';
@@ -182,7 +184,7 @@ export function Card({ card, viewer, index = 0 }: Props) {
 
         {/* Approver row — only for team_plan cards */}
         {lead && card.card_type === 'team_plan' && (
-          <ApproverRow lead={lead} canAct={canActOnThisTeam} viewer={viewer} />
+          <ApproverRow lead={lead} canAct={canActOnThisTeam} viewer={viewer} cardId={card.id} status={card.status} />
         )}
 
         {/* PR opened — show URL prominently */}
@@ -284,11 +286,58 @@ function ApproverRow({
   lead,
   canAct,
   viewer,
+  cardId,
+  status,
 }: {
   lead: Persona;
   canAct: boolean;
   viewer: Persona;
+  cardId: string;
+  status: string | null;
 }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<null | 'approve' | 'reject' | 'comment'>(null);
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+  const [localStatus, setLocalStatus] = useState<string | null>(status);
+
+  async function call(kind: 'approve' | 'reject' | 'comment') {
+    setBusy(kind);
+    setToast(null);
+    try {
+      let body: Record<string, unknown> | undefined;
+      if (kind === 'reject') {
+        const reason = typeof window !== 'undefined' ? window.prompt('Reject reason:') : '';
+        if (!reason) { setBusy(null); return; }
+        body = { reason };
+      } else if (kind === 'comment') {
+        const text = typeof window !== 'undefined' ? window.prompt('Comment:') : '';
+        if (!text) { setBusy(null); return; }
+        body = { text };
+      }
+      const res = await fetch(`/api/cards/${cardId}/${kind}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setToast({ kind: 'err', msg: (data as { error?: string }).error ?? `error ${res.status}` });
+      } else {
+        if (kind === 'approve') setLocalStatus('approved');
+        if (kind === 'reject') setLocalStatus('rejected');
+        setToast({ kind: 'ok', msg: `${kind} ok` });
+        router.refresh();
+      }
+    } catch (e) {
+      setToast({ kind: 'err', msg: (e as Error).message });
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  const decided = localStatus === 'approved' || localStatus === 'rejected' || localStatus === 'overridden';
+
   return (
     <div className="mt-5 pt-4 border-t border-dashed border-[var(--ink-5)]">
       <div className="flex items-center gap-3 flex-wrap">
@@ -305,7 +354,11 @@ function ApproverRow({
           </div>
           <div className="leading-tight">
             <div className="text-[12.5px] text-[var(--ink-11)]">
-              awaiting <span style={{ color: lead.ink }}>{lead.name}</span>
+              {decided ? (
+                <span style={{ color: lead.ink }}>{localStatus}</span>
+              ) : (
+                <>awaiting <span style={{ color: lead.ink }}>{lead.name}</span></>
+              )}
             </div>
             <div className="text-[10.5px] font-mono text-[var(--ink-7)]">@{lead.github_login}</div>
           </div>
@@ -317,10 +370,19 @@ function ApproverRow({
           {canAct ? 'you can decide' : `read-only as ${viewer.name.split(' ')[0]}`}
         </span>
 
+        {toast && (
+          <span
+            className="smallcaps font-mono text-[10.5px]"
+            style={{ color: toast.kind === 'ok' ? 'var(--ok)' : 'var(--err)' }}
+          >
+            · {toast.msg}
+          </span>
+        )}
+
         <div className="ml-auto flex items-stretch hairline">
-          <ActionButton enabled={canAct} kind="approve" />
-          <ActionButton enabled={canAct} kind="reject" />
-          <ActionButton enabled kind="comment" />
+          <ActionButton enabled={canAct && !decided} busy={busy === 'approve'} kind="approve" onClick={() => call('approve')} />
+          <ActionButton enabled={canAct && !decided} busy={busy === 'reject'} kind="reject" onClick={() => call('reject')} />
+          <ActionButton enabled busy={busy === 'comment'} kind="comment" onClick={() => call('comment')} />
         </div>
       </div>
     </div>
@@ -329,10 +391,14 @@ function ApproverRow({
 
 function ActionButton({
   enabled,
+  busy,
   kind,
+  onClick,
 }: {
   enabled: boolean;
+  busy?: boolean;
   kind: 'approve' | 'reject' | 'comment';
+  onClick?: () => void;
 }) {
   const config = {
     approve: { label: 'Approve', glyph: Glyph.Check, color: 'var(--ok)' },
@@ -354,11 +420,13 @@ function ActionButton({
   }
   return (
     <button
-      className="flex items-center gap-1.5 px-3 py-1.5 smallcaps text-[var(--ink-10)] hover:text-[var(--ink-12)] hover:bg-[var(--ink-3)] transition-colors border-r border-[var(--ink-4)] last:border-r-0"
+      onClick={onClick}
+      disabled={busy}
+      className="flex items-center gap-1.5 px-3 py-1.5 smallcaps text-[var(--ink-10)] hover:text-[var(--ink-12)] hover:bg-[var(--ink-3)] transition-colors border-r border-[var(--ink-4)] last:border-r-0 disabled:opacity-50"
       style={{ ['--accent' as string]: config.color }}
     >
       <G size={10} className={kind === 'comment' ? '' : ''} style={{ color: config.color } as React.CSSProperties} />
-      {config.label}
+      {busy ? '…' : config.label}
     </button>
   );
 }
