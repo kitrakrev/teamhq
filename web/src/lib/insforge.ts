@@ -55,13 +55,12 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
-// Demo currently runs single-tenant under one org. Multi-tenant is enforced
-// at the data layer — every read scopes by org_id. The active org is set at
-// the server boundary; clients never pick a tenant freely.
-const ORG_ID = process.env.ORG_ID;
-
-function orgClause(): string {
-  return ORG_ID ? `&org_id=eq.${ORG_ID}` : '';
+// Multi-tenant: every read takes the active org from the SESSION, not env.
+// Callers must obtain orgId via getSession() (lib/session.ts) and pass it in.
+// The hardcoded ORG_ID env is deliberately removed — it leaked Acme Eng's
+// data to fresh tenants.
+function orgClause(orgId: string | null | undefined): string {
+  return orgId ? `&org_id=eq.${orgId}` : '';
 }
 
 export type Org = {
@@ -156,43 +155,53 @@ async function del(path: string): Promise<void> {
   if (!r.ok) throw new Error(`InsForge DELETE ${path} -> ${r.status}: ${await r.text()}`);
 }
 
+/**
+ * NEW SHAPE: every method that touches tenant-scoped data takes `orgId`.
+ * If orgId is null, methods return empty (reads) or throw (writes).
+ * Callers obtain orgId via getSession() so the active tenant is per-request.
+ */
 export const ifg = {
-  async listRuns(limit = 20): Promise<Run[]> {
-    return get<Run[]>(`/api/database/records/runs?order=created_at.desc&limit=${limit}${orgClause()}`);
+  async listRuns(orgId: string | null, limit = 20): Promise<Run[]> {
+    if (!orgId) return [];
+    return get<Run[]>(`/api/database/records/runs?order=created_at.desc&limit=${limit}${orgClause(orgId)}`);
   },
-  async getRun(id: string): Promise<Run | null> {
-    const rows = await get<Run[]>(`/api/database/records/runs?id=eq.${id}${orgClause()}`);
+  async getRun(orgId: string | null, id: string): Promise<Run | null> {
+    if (!orgId) return null;
+    const rows = await get<Run[]>(`/api/database/records/runs?id=eq.${id}${orgClause(orgId)}`);
     return rows[0] ?? null;
   },
-  async listCards(runId: string): Promise<Card[]> {
-    return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc${orgClause()}`);
+  async listCards(orgId: string | null, runId: string): Promise<Card[]> {
+    if (!orgId) return [];
+    return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc${orgClause(orgId)}`);
   },
-  async listUsers(): Promise<User[]> {
-    return get<User[]>(`/api/database/records/users?order=created_at.asc${orgClause()}`);
+  async listUsers(orgId: string | null): Promise<User[]> {
+    if (!orgId) return [];
+    return get<User[]>(`/api/database/records/users?order=created_at.asc${orgClause(orgId)}`);
   },
-  async getOrg(): Promise<Org | null> {
-    if (!ORG_ID) return null;
-    const rows = await get<Org[]>(`/api/database/records/orgs?id=eq.${ORG_ID}`);
+  async getOrg(orgId: string | null): Promise<Org | null> {
+    if (!orgId) return null;
+    const rows = await get<Org[]>(`/api/database/records/orgs?id=eq.${orgId}`);
     return rows[0] ?? null;
   },
-  async listOrgMembers(): Promise<OrgMember[]> {
-    if (!ORG_ID) return [];
-    return get<OrgMember[]>(`/api/database/records/org_members?org_id=eq.${ORG_ID}`);
+  async listOrgMembers(orgId: string | null): Promise<OrgMember[]> {
+    if (!orgId) return [];
+    return get<OrgMember[]>(`/api/database/records/org_members?org_id=eq.${orgId}`);
   },
-  async listTeams(): Promise<Team[]> {
-    if (!ORG_ID) return [];
-    return get<Team[]>(`/api/database/records/teams?org_id=eq.${ORG_ID}&order=name.asc`);
+  async listTeams(orgId: string | null): Promise<Team[]> {
+    if (!orgId) return [];
+    return get<Team[]>(`/api/database/records/teams?org_id=eq.${orgId}&order=name.asc`);
   },
-  async listOrgRepos(): Promise<OrgRepo[]> {
-    if (!ORG_ID) return [];
-    return get<OrgRepo[]>(`/api/database/records/org_repos?org_id=eq.${ORG_ID}&order=github_full_name.asc`);
+  async listOrgRepos(orgId: string | null): Promise<OrgRepo[]> {
+    if (!orgId) return [];
+    return get<OrgRepo[]>(`/api/database/records/org_repos?org_id=eq.${orgId}&order=github_full_name.asc`);
   },
-  async listProjects(): Promise<Project[]> {
-    if (!ORG_ID) return [];
-    return get<Project[]>(`/api/database/records/projects?org_id=eq.${ORG_ID}&order=created_at.desc`);
+  async listProjects(orgId: string | null): Promise<Project[]> {
+    if (!orgId) return [];
+    return get<Project[]>(`/api/database/records/projects?org_id=eq.${orgId}&order=created_at.desc`);
   },
-  async getProject(id: string): Promise<Project | null> {
-    const rows = await get<Project[]>(`/api/database/records/projects?id=eq.${id}${orgClause()}`);
+  async getProject(orgId: string | null, id: string): Promise<Project | null> {
+    if (!orgId) return null;
+    const rows = await get<Project[]>(`/api/database/records/projects?id=eq.${id}${orgClause(orgId)}`);
     return rows[0] ?? null;
   },
   async listProjectRepos(projectId: string): Promise<ProjectRepo[]> {
@@ -202,24 +211,23 @@ export const ifg = {
     const q = userId ? `?user_id=eq.${userId}` : '';
     return get<OAuthToken[]>(`/api/database/records/oauth_tokens${q}`);
   },
-  async upsertOrgRepo(input: { github_full_name: string; default_branch?: string | null }): Promise<OrgRepo> {
-    if (!ORG_ID) throw new Error('ORG_ID missing');
-    // Check if exists first.
+  async upsertOrgRepo(orgId: string, input: { github_full_name: string; default_branch?: string | null }): Promise<OrgRepo> {
+    if (!orgId) throw new Error('orgId missing');
     const existing = await get<OrgRepo[]>(
-      `/api/database/records/org_repos?org_id=eq.${ORG_ID}&github_full_name=eq.${encodeURIComponent(input.github_full_name)}`,
+      `/api/database/records/org_repos?org_id=eq.${orgId}&github_full_name=eq.${encodeURIComponent(input.github_full_name)}`,
     );
     if (existing[0]) return existing[0];
     const created = await post<OrgRepo[] | OrgRepo>('/api/database/records/org_repos', {
-      org_id: ORG_ID,
+      org_id: orgId,
       github_full_name: input.github_full_name,
       default_branch: input.default_branch ?? 'main',
     });
     return Array.isArray(created) ? created[0] : created;
   },
-  async createProject(input: { name: string; description?: string; repoIds?: string[]; createdByUserId?: string | null }): Promise<Project> {
-    if (!ORG_ID) throw new Error('ORG_ID missing');
+  async createProject(orgId: string, input: { name: string; description?: string; repoIds?: string[]; createdByUserId?: string | null }): Promise<Project> {
+    if (!orgId) throw new Error('orgId missing');
     const created = await post<Project[] | Project>('/api/database/records/projects', {
-      org_id: ORG_ID,
+      org_id: orgId,
       name: input.name,
       description: input.description ?? null,
       created_by_user_id: input.createdByUserId ?? null,
@@ -249,16 +257,16 @@ export const ifg = {
       await del(`/api/database/records/project_repos?id=eq.${r.id}`);
     }
   },
-  async createRun(input: {
+  async createRun(orgId: string, input: {
     repo: string;
     trigger_type: string;
     trigger_source: string;
     status?: string;
     project_id?: string | null;
   }): Promise<Run> {
-    if (!ORG_ID) throw new Error('ORG_ID missing');
+    if (!orgId) throw new Error('orgId missing');
     const created = await post<Run[] | Run>('/api/database/records/runs', {
-      org_id: ORG_ID,
+      org_id: orgId,
       repo: input.repo,
       trigger_type: input.trigger_type,
       trigger_source: input.trigger_source,
@@ -267,19 +275,20 @@ export const ifg = {
     });
     return Array.isArray(created) ? created[0] : created;
   },
-  async listRunsForProject(projectId: string, limit = 20): Promise<Run[]> {
-    return get<Run[]>(`/api/database/records/runs?project_id=eq.${projectId}&order=created_at.desc&limit=${limit}${orgClause()}`);
+  async listRunsForProject(orgId: string | null, projectId: string, limit = 20): Promise<Run[]> {
+    if (!orgId) return [];
+    return get<Run[]>(`/api/database/records/runs?project_id=eq.${projectId}&order=created_at.desc&limit=${limit}${orgClause(orgId)}`);
   },
-  async listInvites(): Promise<Array<Record<string, unknown>>> {
-    if (!ORG_ID) return [];
-    return get<Array<Record<string, unknown>>>(`/api/database/records/invites?org_id=eq.${ORG_ID}&order=created_at.desc`);
+  async listInvites(orgId: string | null): Promise<Array<Record<string, unknown>>> {
+    if (!orgId) return [];
+    return get<Array<Record<string, unknown>>>(`/api/database/records/invites?org_id=eq.${orgId}&order=created_at.desc`);
   },
-  async createInvite(input: { email: string; role: string; team_id?: string | null }): Promise<Record<string, unknown>> {
-    if (!ORG_ID) throw new Error('ORG_ID missing');
+  async createInvite(orgId: string, input: { email: string; role: string; team_id?: string | null }): Promise<Record<string, unknown>> {
+    if (!orgId) throw new Error('orgId missing');
     const created = await post<Array<Record<string, unknown>> | Record<string, unknown>>(
       '/api/database/records/invites',
       {
-        org_id: ORG_ID,
+        org_id: orgId,
         email: input.email,
         role: input.role,
         team_id: input.team_id ?? null,
@@ -288,12 +297,28 @@ export const ifg = {
     );
     return Array.isArray(created) ? created[0] : created;
   },
-  async countCardsWithDocuments(): Promise<number> {
-    if (!ORG_ID) return 0;
-    // Light heuristic: cards w/ a non-null body, scoped to org.
+  async countCardsWithDocuments(orgId: string | null): Promise<number> {
+    if (!orgId) return 0;
     const rows = await get<Array<{ id: string }>>(
-      `/api/database/records/cards?org_id=eq.${ORG_ID}&select=id&limit=1000`,
+      `/api/database/records/cards?org_id=eq.${orgId}&select=id&limit=1000`,
     );
     return rows.length;
+  },
+  /** Create a fresh org for a brand-new user (post-signup, no existing membership). */
+  async provisionOrg(input: { name: string; slug: string; ownerUserId: string }): Promise<Org> {
+    const created = await post<Org[] | Org>('/api/database/records/orgs', {
+      name: input.name,
+      slug: input.slug,
+      owner_user_id: input.ownerUserId,
+    });
+    const org = Array.isArray(created) ? created[0] : created;
+    // Add owner membership.
+    await post('/api/database/records/org_members', {
+      org_id: org.id,
+      user_id: input.ownerUserId,
+      role: 'org_owner',
+      team_id: null,
+    });
+    return org;
   },
 };

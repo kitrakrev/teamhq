@@ -40,23 +40,29 @@ async function fetchGithubRepos(token: string): Promise<PickableRepo[] | null> {
 
 async function saveReposAction(formData: FormData) {
   'use server';
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const repos = formData.getAll('repo').map((v) => String(v));
   for (const r of repos) {
     const [full, branch] = r.split('::');
     if (!full) continue;
-    await ifg.upsertOrgRepo({ github_full_name: full, default_branch: branch || 'main' });
+    if (!orgId) throw new Error('no org context');
+    await ifg.upsertOrgRepo(orgId, { github_full_name: full, default_branch: branch || 'main' });
   }
   redirect('/onboard?step=3');
 }
 
 async function inviteAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   'use server';
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const email = String(formData.get('email') ?? '').trim();
   const role = String(formData.get('role') ?? 'member');
   const team_id = String(formData.get('team_id') ?? '') || null;
   if (!email) return { ok: false, error: 'Email required' };
   try {
-    await ifg.createInvite({ email, role, team_id });
+    if (!orgId) throw new Error('no org context');
+    await ifg.createInvite(orgId, { email, role, team_id });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'invite failed' };
@@ -96,13 +102,14 @@ export default async function OnboardPage({ searchParams }: { searchParams: SP }
   const stepParam = Number(sp.step ?? '1');
   const session = await getSession();
 
+  const orgId = session?.orgId ?? null;
   // Look up GH token + existing org repos to compute "done" state.
   const [tokens, existingRepos, members, teams, users] = await Promise.all([
     session ? ifg.listOAuthTokens(session.userId).catch(() => []) : Promise.resolve([]),
-    ifg.listOrgRepos().catch(() => []),
-    ifg.listOrgMembers().catch(() => []),
-    ifg.listTeams().catch(() => []),
-    ifg.listUsers().catch(() => []),
+    ifg.listOrgRepos(orgId).catch(() => []),
+    ifg.listOrgMembers(orgId).catch(() => []),
+    ifg.listTeams(orgId).catch(() => []),
+    ifg.listUsers(orgId).catch(() => []),
   ]);
 
   const ghToken = tokens.find((t) => t.provider === 'github');

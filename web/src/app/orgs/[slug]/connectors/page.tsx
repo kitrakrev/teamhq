@@ -1,6 +1,7 @@
 // Connectors directory — light grid of source cards w/ live "Connected" status
 // pulled from oauth_tokens + ingested cards.
 import { ifg } from '@/lib/insforge';
+import { getSession } from '@/lib/session';
 import {
   GitHubIcon,
   SlackIcon,
@@ -46,11 +47,13 @@ function StatusPill({ connected }: { connected: boolean }) {
 }
 
 export default async function ConnectorsPage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   await params;
   const [tokens, teams, indexedCount] = await Promise.all([
     ifg.listOAuthTokens().catch(() => []),
-    ifg.listTeams().catch(() => []),
-    ifg.countCardsWithDocuments().catch(() => 0),
+    ifg.listTeams(orgId).catch(() => []),
+    ifg.countCardsWithDocuments(orgId).catch(() => 0),
   ]);
 
   const liveProviders = new Set(tokens.map((t) => t.provider.toLowerCase()));

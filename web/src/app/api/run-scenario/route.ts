@@ -3,6 +3,7 @@
 // redirect to the run detail page immediately.
 import { NextResponse } from 'next/server';
 import { ifg } from '@/lib/insforge';
+import { getSession } from '@/lib/session';
 
 const SCENARIO_LABELS: Record<string, string> = {
   'fastapi-go': 'FastAPI → Go',
@@ -13,6 +14,8 @@ const SCENARIO_LABELS: Record<string, string> = {
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   let body: { projectId?: string; scenario?: string };
   try {
     body = (await req.json()) as { projectId?: string; scenario?: string };
@@ -26,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'projectId + scenario required' }, { status: 400 });
   }
 
-  const project = await ifg.getProject(projectId).catch(() => null);
+  const project = await ifg.getProject(orgId, projectId).catch(() => null);
   if (!project) {
     return NextResponse.json({ error: 'project not found' }, { status: 404 });
   }
@@ -34,14 +37,15 @@ export async function POST(req: Request) {
   // Pick the first attached repo (if any) to seed run.repo. Falls back to
   // a placeholder so the row still inserts.
   const projectRepos = await ifg.listProjectRepos(projectId).catch(() => []);
-  const orgRepos = await ifg.listOrgRepos().catch(() => []);
+  const orgRepos = await ifg.listOrgRepos(orgId).catch(() => []);
   const repoById = new Map(orgRepos.map((r) => [r.id, r]));
   const repoFull =
     projectRepos
       .map((pr) => repoById.get(pr.org_repo_id)?.github_full_name)
       .find(Boolean) ?? 'kitrakrev/teamhq-hero';
 
-  const run = await ifg.createRun({
+  if (!orgId) return NextResponse.json({ error: 'no org context' }, { status: 400 });
+  const run = await ifg.createRun(orgId, {
     repo: repoFull,
     trigger_type: 'scenario',
     trigger_source: `Project: ${project.name} · Scenario: ${label}`,

@@ -10,9 +10,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function NewProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const [repos, teams] = await Promise.all([
-    ifg.listOrgRepos().catch(() => []),
-    ifg.listTeams().catch(() => []),
+    ifg.listOrgRepos(orgId).catch(() => []),
+    ifg.listTeams(orgId).catch(() => []),
   ]);
 
   async function createAction(formData: FormData) {
@@ -22,7 +24,9 @@ export default async function NewProjectPage({ params }: { params: Promise<{ slu
     const repoIds = formData.getAll('repo_id').map((v) => String(v));
     if (!name) throw new Error('Project name required');
     const session = await getSession();
-    const project = await ifg.createProject({
+  const orgId = session?.orgId ?? null;
+    if (!orgId) throw new Error('no org context');
+    const project = await ifg.createProject(orgId, {
       name,
       description,
       repoIds,

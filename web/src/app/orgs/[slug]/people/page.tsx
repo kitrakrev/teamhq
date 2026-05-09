@@ -2,17 +2,21 @@
 import { ifg } from '@/lib/insforge';
 import { TEAM_INK } from '@/lib/personas';
 import { InviteModal } from '@/components/people/InviteModal';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 async function inviteAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   'use server';
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const email = String(formData.get('email') ?? '').trim();
   const role = String(formData.get('role') ?? 'member');
   const team_id = String(formData.get('team_id') ?? '') || null;
   if (!email) return { ok: false, error: 'Email required' };
   try {
-    await ifg.createInvite({ email, role, team_id });
+    if (!orgId) throw new Error('no org context');
+    await ifg.createInvite(orgId, { email, role, team_id });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'invite failed' };
@@ -30,12 +34,14 @@ function initialsOf(s: string): string {
 }
 
 export default async function PeoplePage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   await params;
   const [members, users, teams, invites] = await Promise.all([
-    ifg.listOrgMembers().catch(() => []),
-    ifg.listUsers().catch(() => []),
-    ifg.listTeams().catch(() => []),
-    ifg.listInvites().catch(() => []),
+    ifg.listOrgMembers(orgId).catch(() => []),
+    ifg.listUsers(orgId).catch(() => []),
+    ifg.listTeams(orgId).catch(() => []),
+    ifg.listInvites(orgId).catch(() => []),
   ]);
 
   const userById = new Map(users.map((u) => [u.id, u]));

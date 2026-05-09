@@ -1,11 +1,14 @@
 // Projects index — list view w/ a CTA to create a new one.
 import { ifg } from '@/lib/insforge';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProjectsPage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const { slug } = await params;
-  const projects = await ifg.listProjects().catch(() => []);
+  const projects = await ifg.listProjects(orgId).catch(() => []);
 
   return (
     <main className="bg-gradient-to-b from-white to-gray-50 min-h-screen">

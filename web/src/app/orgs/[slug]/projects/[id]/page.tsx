@@ -3,6 +3,7 @@
 import { notFound } from 'next/navigation';
 import { ifg } from '@/lib/insforge';
 import { ScenarioButton } from '@/components/projects/ScenarioButton';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,14 +27,16 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
+  const session = await getSession();
+  const orgId = session?.orgId ?? null;
   const { slug, id } = await params;
-  const project = await ifg.getProject(id).catch(() => null);
+  const project = await ifg.getProject(orgId, id).catch(() => null);
   if (!project) notFound();
 
   const [projectRepos, orgRepos, runs] = await Promise.all([
     ifg.listProjectRepos(id).catch(() => []),
-    ifg.listOrgRepos().catch(() => []),
-    ifg.listRunsForProject(id, 30).catch(() => []),
+    ifg.listOrgRepos(orgId).catch(() => []),
+    ifg.listRunsForProject(orgId, id, 30).catch(() => []),
   ]);
 
   const repoById = new Map(orgRepos.map((r) => [r.id, r]));
