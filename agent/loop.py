@@ -30,6 +30,7 @@ class TriggerSpec:
     trigger_type: str                   # "manual" | "cron" | "webhook"
     trigger_source: str                 # "openai==1.0.0 release"
     affected_paths: list[str] = field(default_factory=list)
+    org_id: str | None = None           # tenant scope; defaults to env ORG_ID
 
 
 # Team mapping. V2 will read this from the repo's CODEOWNERS instead.
@@ -64,10 +65,23 @@ def question_for(*, trigger: TriggerSpec, team: str, files: list[str]) -> str:
     )
 
 
-def start_run(trigger: TriggerSpec) -> dict[str, Any]:
+def _resolve_org_id(trigger: TriggerSpec) -> str:
+    """Pick the tenant for this run. Falls back to env ORG_ID for the demo."""
+    import os
+
+    if trigger.org_id:
+        return trigger.org_id
+    env_id = os.environ.get("ORG_ID")
+    if not env_id:
+        raise RuntimeError("ORG_ID not set in env and trigger.org_id is None")
+    return env_id
+
+
+def start_run(trigger: TriggerSpec, org_id: str) -> dict[str, Any]:
     row = insert(
         "runs",
         {
+            "org_id": org_id,
             "repo": trigger.repo,
             "trigger_type": trigger.trigger_type,
             "trigger_source": trigger.trigger_source,
@@ -86,13 +100,16 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
     """Execute V1 loop synchronously. Returns the final run row.
 
     Each phase logs a card to InsForge — the UI streams them via realtime.
+    All writes scoped to org_id (multi-tenant).
     """
-    run_row = start_run(trigger)
+    org_id = _resolve_org_id(trigger)
+    run_row = start_run(trigger, org_id)
     run_id = run_row.get("id") or _lookup_latest_run_id(trigger)
-    print(f"[loop] run started: {run_id}")
+    print(f"[loop] run started: {run_id} (org={org_id})")
 
     emit(
         run_id=run_id,
+        org_id=org_id,
         card_type="trigger",
         title=f"Trigger: {trigger.trigger_source}",
         body={
@@ -114,6 +131,7 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
         team_plans[team] = plan
         emit(
             run_id=run_id,
+            org_id=org_id,
             card_type="team_plan",
             title=f"{team.upper()} team plan",
             team_id=team,
@@ -129,9 +147,9 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
         )
         print(f"[loop] team_plan {team}: {len(plan['documents'])} citations")
 
-    sandbox_status = _run_sandbox(run_id=run_id, trigger=trigger)
+    sandbox_status = _run_sandbox(run_id=run_id, trigger=trigger, org_id=org_id)
 
-    pr_url = _open_pr_stub(run_id=run_id, trigger=trigger, team_plans=team_plans)
+    pr_url = _open_pr_stub(run_id=run_id, trigger=trigger, team_plans=team_plans, org_id=org_id)
 
     final = update(
         "runs",
@@ -158,7 +176,7 @@ def _lookup_latest_run_id(trigger: TriggerSpec) -> str:
     raise RuntimeError("could not locate the run we just inserted")
 
 
-def _run_sandbox(*, run_id: str, trigger: TriggerSpec) -> dict[str, Any]:
+def _run_sandbox(*, run_id: str, trigger: TriggerSpec, org_id: str) -> dict[str, Any]:
     """Bring up a Tensorlake sandbox, prove we can run code in it, log a card.
 
     V1 doesn't apply edits or run pytest yet — that's V2 once the codemod is
@@ -172,6 +190,7 @@ def _run_sandbox(*, run_id: str, trigger: TriggerSpec) -> dict[str, Any]:
         # V2 will: clone, install, codemod, pytest. V1 stops at proof-of-life.
         emit(
             run_id=run_id,
+            org_id=org_id,
             card_type="sandbox",
             title="Tensorlake sandbox up",
             body=info,
@@ -187,7 +206,7 @@ def _run_sandbox(*, run_id: str, trigger: TriggerSpec) -> dict[str, Any]:
 
 
 def _open_pr_stub(
-    *, run_id: str, trigger: TriggerSpec, team_plans: dict[str, dict[str, Any]]
+    *, run_id: str, trigger: TriggerSpec, team_plans: dict[str, dict[str, Any]], org_id: str
 ) -> str | None:
     """V1: log a `pr_pending` card with the plan body, no real PR yet.
 
@@ -210,6 +229,7 @@ def _open_pr_stub(
     }
     emit(
         run_id=run_id,
+        org_id=org_id,
         card_type="pr_pending",
         title="PR proposal ready (V1 stub)",
         body=body,

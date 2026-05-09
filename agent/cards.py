@@ -21,11 +21,13 @@ def emit(
     card_type: str,
     title: str,
     body: dict,
+    org_id: str | None = None,
     team_id: str | None = None,
     visibility: dict | None = None,
     status: str = "info",
 ) -> dict[str, Any]:
     row = {
+        "org_id": org_id,
         "run_id": run_id,
         "card_type": card_type,
         "team_id": team_id,

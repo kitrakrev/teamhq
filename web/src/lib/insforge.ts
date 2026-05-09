@@ -50,18 +50,51 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+// Demo currently runs single-tenant under one org. Multi-tenant is enforced
+// at the data layer — every read scopes by org_id. The active org is set at
+// the server boundary; clients never pick a tenant freely.
+const ORG_ID = process.env.ORG_ID;
+
+function orgClause(): string {
+  return ORG_ID ? `&org_id=eq.${ORG_ID}` : '';
+}
+
+export type Org = {
+  id: string;
+  name: string;
+  slug: string;
+  owner_user_id: string | null;
+};
+
+export type OrgMember = {
+  id: string;
+  org_id: string;
+  user_id: string;
+  role: string;
+  team_id: string | null;
+};
+
 export const ifg = {
   async listRuns(limit = 20): Promise<Run[]> {
-    return get<Run[]>(`/api/database/records/runs?order=created_at.desc&limit=${limit}`);
+    return get<Run[]>(`/api/database/records/runs?order=created_at.desc&limit=${limit}${orgClause()}`);
   },
   async getRun(id: string): Promise<Run | null> {
-    const rows = await get<Run[]>(`/api/database/records/runs?id=eq.${id}`);
+    const rows = await get<Run[]>(`/api/database/records/runs?id=eq.${id}${orgClause()}`);
     return rows[0] ?? null;
   },
   async listCards(runId: string): Promise<Card[]> {
-    return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc`);
+    return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc${orgClause()}`);
   },
   async listUsers(): Promise<User[]> {
-    return get<User[]>(`/api/database/records/users?order=created_at.asc`);
+    return get<User[]>(`/api/database/records/users?order=created_at.asc${orgClause()}`);
+  },
+  async getOrg(): Promise<Org | null> {
+    if (!ORG_ID) return null;
+    const rows = await get<Org[]>(`/api/database/records/orgs?id=eq.${ORG_ID}`);
+    return rows[0] ?? null;
+  },
+  async listOrgMembers(): Promise<OrgMember[]> {
+    if (!ORG_ID) return [];
+    return get<OrgMember[]>(`/api/database/records/org_members?org_id=eq.${ORG_ID}`);
   },
 };
