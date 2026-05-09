@@ -1,5 +1,10 @@
-// Connectors directory — light grid of source cards w/ live "Connected" status
-// pulled from oauth_tokens + ingested cards.
+// Connectors directory — light grid of source cards w/ live "Connected"
+// status pulled from oauth_tokens and tenant-scoped ingest signals.
+//
+// IMPORTANT: connection state is per-tenant (per orgId). New tenants must NOT
+// inherit the demo Acme Eng connections. We probe oauth_tokens scoped to the
+// active org's members + count cards w/ documents (the demo backfill writes
+// these for the seeded tenant only).
 import { ifg } from '@/lib/insforge';
 import { getSession } from '@/lib/session';
 import {
@@ -15,31 +20,48 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+type ConnectorKey =
+  | 'slack' | 'notion' | 'github' | 'linear'
+  | 'gmail' | 'teams' | 'drive' | 'calendar';
+
 type Connector = {
-  key: string;
+  key: ConnectorKey;
   name: string;
   description: string;
   icon: React.ReactNode;
-  liveProbe: boolean; // if true we ask oauth_tokens / cards
+  /** OAuth start URL for this provider (next handler is best-effort wired in V3). */
+  startHref: string;
+  /** True when InsForge / Hyperspell exposes a real OAuth flow today. */
+  available: boolean;
 };
 
 const CONNECTORS: Connector[] = [
-  { key: 'slack', name: 'Slack', description: 'Decisions, threads, channels', icon: <SlackIcon className="h-7 w-7" />, liveProbe: true },
-  { key: 'notion', name: 'Notion', description: 'Specs, designs, runbooks', icon: <NotionIcon className="h-7 w-7" />, liveProbe: true },
-  { key: 'github', name: 'GitHub', description: 'Repos, PRs, runs', icon: <GitHubIcon className="h-7 w-7" />, liveProbe: true },
-  { key: 'linear', name: 'Linear', description: 'Issues and projects', icon: <LinearIcon className="h-7 w-7" />, liveProbe: false },
-  { key: 'gmail', name: 'Gmail', description: 'Inbound stakeholder mail', icon: <GmailIcon className="h-7 w-7" />, liveProbe: false },
-  { key: 'teams', name: 'Microsoft Teams', description: 'Org-wide chat surface', icon: <TeamsIcon className="h-7 w-7" />, liveProbe: false },
-  { key: 'drive', name: 'Google Drive', description: 'Specs and exports', icon: <DriveIcon className="h-7 w-7" />, liveProbe: false },
-  { key: 'calendar', name: 'Google Calendar', description: 'Standups, releases, syncs', icon: <CalendarIcon className="h-7 w-7" />, liveProbe: false },
+  { key: 'slack',    name: 'Slack',            description: 'Decisions, threads, channels',     icon: <SlackIcon className="h-7 w-7" />,    startHref: '/api/oauth/slack/start',    available: true },
+  { key: 'notion',   name: 'Notion',           description: 'Specs, designs, runbooks',         icon: <NotionIcon className="h-7 w-7" />,   startHref: '/api/oauth/notion/start',   available: true },
+  { key: 'github',   name: 'GitHub',           description: 'Repos, PRs, runs',                 icon: <GitHubIcon className="h-7 w-7" />,   startHref: '/api/oauth/github/start',   available: true },
+  { key: 'linear',   name: 'Linear',           description: 'Issues and projects',              icon: <LinearIcon className="h-7 w-7" />,   startHref: '/api/oauth/linear/start',   available: false },
+  { key: 'gmail',    name: 'Gmail',            description: 'Inbound stakeholder mail',         icon: <GmailIcon className="h-7 w-7" />,    startHref: '/api/oauth/gmail/start',    available: false },
+  { key: 'teams',    name: 'Microsoft Teams',  description: 'Org-wide chat surface',            icon: <TeamsIcon className="h-7 w-7" />,    startHref: '/api/oauth/teams/start',    available: false },
+  { key: 'drive',    name: 'Google Drive',     description: 'Specs and exports',                icon: <DriveIcon className="h-7 w-7" />,    startHref: '/api/oauth/drive/start',    available: false },
+  { key: 'calendar', name: 'Google Calendar',  description: 'Standups, releases, syncs',        icon: <CalendarIcon className="h-7 w-7" />, startHref: '/api/oauth/calendar/start', available: false },
 ];
 
-function StatusPill({ connected }: { connected: boolean }) {
-  return connected ? (
-    <span className="bg-green-50 text-green-700 ring-1 ring-green-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
-      Connected
-    </span>
-  ) : (
+function StatusPill({ state }: { state: 'connected' | 'not_connected' | 'unavailable' }) {
+  if (state === 'connected') {
+    return (
+      <span className="bg-green-50 text-green-700 ring-1 ring-green-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
+        Connected
+      </span>
+    );
+  }
+  if (state === 'unavailable') {
+    return (
+      <span className="bg-amber-50 text-amber-700 ring-1 ring-amber-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
+        Coming soon
+      </span>
+    );
+  }
+  return (
     <span className="bg-gray-50 text-gray-500 ring-1 ring-gray-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
       Not connected
     </span>
@@ -47,23 +69,44 @@ function StatusPill({ connected }: { connected: boolean }) {
 }
 
 export default async function ConnectorsPage({ params }: { params: Promise<{ slug: string }> }) {
+  await params;
   const session = await getSession();
   const orgId = session?.orgId ?? null;
-  await params;
-  const [tokens, teams, indexedCount] = await Promise.all([
-    ifg.listOAuthTokens().catch(() => []),
-    ifg.listTeams(orgId).catch(() => []),
+
+  // Pull oauth_tokens for THIS user only (per-user scope). For org-wide
+  // connection state we'd ideally join through org_members; for V2 we treat
+  // any connected token belonging to a member of the active org as
+  // representing the org's connection.
+  const [members, indexedCount, teams] = await Promise.all([
+    ifg.listOrgMembers(orgId).catch(() => []),
     ifg.countCardsWithDocuments(orgId).catch(() => 0),
+    ifg.listTeams(orgId).catch(() => []),
   ]);
+  const memberUserIds = new Set(members.map((m) => m.user_id));
 
-  const liveProviders = new Set(tokens.map((t) => t.provider.toLowerCase()));
-  // Slack/Notion/GitHub are seeded — even without an oauth_tokens row, treat as connected
-  // because they've ingested artifacts in the demo backend.
-  const seededLive = new Set(['slack', 'notion', 'github']);
+  // Tenant-scoped: a connector is Connected only when an oauth_tokens row
+  // belongs to a member of THIS org. Fresh tenants start cold.
+  const allTokens = await ifg.listOAuthTokens().catch(() => []);
+  const liveProviders = new Set<string>();
+  for (const t of allTokens) {
+    if (memberUserIds.has(t.user_id)) {
+      liveProviders.add(t.provider.toLowerCase());
+    }
+  }
 
-  function isConnected(c: Connector): boolean {
-    if (!c.liveProbe) return false;
-    return liveProviders.has(c.key) || seededLive.has(c.key);
+  // Demo Acme Eng tenant has seeded artifacts in cards (Slack + Notion + GitHub
+  // synthesized into Hyperspell). Use indexedCount as a tenant-scoped signal:
+  // when this org has indexed artifacts, the seeded sources count as connected.
+  const tenantHasSeeded = indexedCount > 0;
+  const seededIfTenantBackedFilled: Set<string> = tenantHasSeeded
+    ? new Set(['slack', 'notion', 'github'])
+    : new Set();
+
+  function stateFor(c: Connector): 'connected' | 'not_connected' | 'unavailable' {
+    if (!c.available) return 'unavailable';
+    if (liveProviders.has(c.key)) return 'connected';
+    if (seededIfTenantBackedFilled.has(c.key)) return 'connected';
+    return 'not_connected';
   }
 
   return (
@@ -73,7 +116,9 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Connectors</h1>
             <p className="text-base text-gray-500 mt-2">
-              The sources TeamHQ pulls signal from. Indexed in real time, scoped to your org.
+              {orgId
+                ? 'The sources TeamHQ pulls signal from. Indexed in real time, scoped to your org.'
+                : 'Sign in to connect sources to your org.'}
             </p>
           </div>
           <div className="text-xs text-gray-500">
@@ -83,7 +128,8 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CONNECTORS.map((c) => {
-            const connected = isConnected(c);
+            const state = stateFor(c);
+            const connected = state === 'connected';
             return (
               <div
                 key={c.key}
@@ -93,7 +139,7 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
                   <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
                     {c.icon}
                   </div>
-                  <StatusPill connected={connected} />
+                  <StatusPill state={state} />
                 </div>
                 <div>
                   <div className="text-base font-semibold text-gray-900">{c.name}</div>
@@ -107,12 +153,20 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
                     >
                       Manage
                     </button>
+                  ) : c.available ? (
+                    <a
+                      href={c.startHref}
+                      className="bg-gray-900 text-white rounded-xl px-4 py-2 text-sm hover:bg-gray-800 active:scale-[.98] transition w-full inline-block text-center"
+                    >
+                      Connect {c.name}
+                    </a>
                   ) : (
                     <button
                       type="button"
-                      className="bg-gray-900 text-white rounded-xl px-4 py-2 text-sm hover:bg-gray-800 active:scale-[.98] transition w-full"
+                      disabled
+                      className="bg-gray-100 text-gray-400 rounded-xl px-4 py-2 text-sm w-full cursor-not-allowed"
                     >
-                      Connect
+                      Coming soon
                     </button>
                   )}
                 </div>
