@@ -5,7 +5,6 @@
 // HttpOnly cookies. OAuth uses the InsForge SDK in the browser.
 import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { InsForgeClient } from '@insforge/sdk';
 
 type Mode = 'signin' | 'signup';
 
@@ -74,29 +73,34 @@ function LoginInner() {
     setError(null);
     setSubmitting(true);
     try {
-      const client = new InsForgeClient({
-        baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
-        anonKey: undefined as unknown as string,
+      // Generate PKCE pair (RFC 7636). InsForge's OAuth start endpoint takes
+      // a code_challenge and stashes it server-side; on callback we send the
+      // code_verifier back via cookie.
+      const verifier = crypto.randomUUID() + '-' + crypto.randomUUID();
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(verifier));
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(buf)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+      // Persist verifier in a short-lived cookie that the /auth/callback route reads.
+      document.cookie = `teamhq_pkce=${verifier}; Path=/; Max-Age=600; SameSite=Lax`;
+
+      const params = new URLSearchParams({
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        redirect_uri: `${window.location.origin}/auth/callback`,
       });
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      const { data, error: oerr } = await client.auth.signInWithOAuth({
-        provider,
-        redirectTo,
-        skipBrowserRedirect: true,
-      });
-      if (oerr || !data?.url) {
-        setError(oerr?.message ?? 'OAuth failed');
+
+      const r = await fetch(
+        `${process.env.NEXT_PUBLIC_INSFORGE_URL}/api/auth/oauth/${provider}?${params}`,
+      );
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.authUrl) {
+        setError(data.message ?? `${provider} OAuth init failed`);
         setSubmitting(false);
         return;
       }
-      // Pack the codeVerifier into the redirect URL via `state` so the server
-      // callback can pick it up. (InsForge appends `state` round-trip to the
-      // OAuth provider for us.)
-      const cv = data.codeVerifier ?? '';
-      const stateBlob = Buffer.from(JSON.stringify({ cv })).toString('base64');
-      const url = new URL(data.url);
-      url.searchParams.set('state', stateBlob);
-      window.location.href = url.toString();
+      window.location.href = data.authUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'OAuth error');
       setSubmitting(false);
