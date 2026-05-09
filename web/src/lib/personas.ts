@@ -3,35 +3,38 @@
 export type Persona = {
   key: 'sarah' | 'iris' | 'alice' | 'grace' | 'dan' | 'frank';
   name: string;
+  initials: string;          // editorial — used as the avatar mark
   email: string;
   role: 'lead' | 'architect' | 'pm';
   team: 'backend' | 'ds' | 'ui' | 'devops' | '*';
   github_login: string;
-  emoji: string;
-  color: string; // tailwind class for team accent
+  /** Tailwind text/border accent for the persona's team */
+  accent: string;            // e.g. 'text-team-backend'
+  /** Hex from the global ink palette (for inline style) */
+  ink: string;
 };
 
 export const PERSONAS: Persona[] = [
-  { key: 'sarah', name: 'Sarah Chen',   email: 'sarah@teamhq.demo', role: 'lead',      team: 'backend', github_login: 'kitrakrev',           emoji: '🛠️', color: 'bg-amber-500' },
-  { key: 'iris',  name: 'Iris Patel',   email: 'iris@teamhq.demo',  role: 'lead',      team: 'ds',      github_login: 'kart-001',            emoji: '🧪', color: 'bg-emerald-500' },
-  { key: 'alice', name: 'Alice Rivera', email: 'alice@teamhq.demo', role: 'lead',      team: 'ui',      github_login: 'Ash-ketchum-pikachu', emoji: '🎨', color: 'bg-sky-500' },
-  { key: 'grace', name: 'Grace Liu',    email: 'grace@teamhq.demo', role: 'lead',      team: 'devops',  github_login: 'kitrakrev',           emoji: '🚀', color: 'bg-orange-500' },
-  { key: 'dan',   name: 'Dan Park',     email: 'dan@teamhq.demo',   role: 'architect', team: '*',       github_login: 'kitrakrev',           emoji: '🧭', color: 'bg-purple-500' },
-  { key: 'frank', name: 'Frank Lee',    email: 'frank@teamhq.demo', role: 'pm',        team: '*',       github_login: 'kitrakrev',           emoji: '💼', color: 'bg-rose-500' },
+  { key: 'sarah', name: 'Sarah Chen',   initials: 'SC', email: 'sarah@teamhq.demo', role: 'lead',      team: 'backend', github_login: 'kitrakrev',           accent: 'text-[var(--team-backend)]', ink: 'var(--team-backend)' },
+  { key: 'iris',  name: 'Iris Patel',   initials: 'IP', email: 'iris@teamhq.demo',  role: 'lead',      team: 'ds',      github_login: 'kart-001',            accent: 'text-[var(--team-ds)]',      ink: 'var(--team-ds)' },
+  { key: 'alice', name: 'Alice Rivera', initials: 'AR', email: 'alice@teamhq.demo', role: 'lead',      team: 'ui',      github_login: 'Ash-ketchum-pikachu', accent: 'text-[var(--team-ui)]',      ink: 'var(--team-ui)' },
+  { key: 'grace', name: 'Grace Liu',    initials: 'GL', email: 'grace@teamhq.demo', role: 'lead',      team: 'devops',  github_login: 'kitrakrev',           accent: 'text-[var(--team-devops)]',  ink: 'var(--team-devops)' },
+  { key: 'dan',   name: 'Dan Park',     initials: 'DP', email: 'dan@teamhq.demo',   role: 'architect', team: '*',       github_login: 'kitrakrev',           accent: 'text-[var(--team-arch)]',    ink: 'var(--team-arch)' },
+  { key: 'frank', name: 'Frank Lee',    initials: 'FL', email: 'frank@teamhq.demo', role: 'pm',        team: '*',       github_login: 'kitrakrev',           accent: 'text-[var(--team-pm)]',      ink: 'var(--team-pm)' },
 ];
-
-export const TEAM_COLOR: Record<string, string> = {
-  backend: 'bg-amber-500',
-  ds:      'bg-emerald-500',
-  ui:      'bg-sky-500',
-  devops:  'bg-orange-500',
-};
 
 export const TEAM_LABEL: Record<string, string> = {
   backend: 'Backend',
-  ds:      'DS',
-  ui:      'UI',
+  ds:      'Data Science',
+  ui:      'Frontend',
   devops:  'DevOps',
+};
+
+export const TEAM_INK: Record<string, string> = {
+  backend: 'var(--team-backend)',
+  ds:      'var(--team-ds)',
+  ui:      'var(--team-ui)',
+  devops:  'var(--team-devops)',
 };
 
 export function personaByKey(key: string): Persona | undefined {
@@ -45,3 +48,6 @@ export function leadOfTeam(team: string): Persona | undefined {
 export function roleRank(role: string): number {
   return ({ viewer: 0, member: 1, lead: 2, architect: 3, org_owner: 4, pm: 1 } as Record<string, number>)[role] ?? 0;
 }
+
+// Backward-compat exports (referenced elsewhere if any)
+export const TEAM_COLOR = TEAM_INK;

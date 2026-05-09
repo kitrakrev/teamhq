@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Card } from './Card';
+import { Chrome } from './Chrome';
 import { ViewAsToggle } from './ViewAsToggle';
+import { Glyph } from './Glyph';
 import { PERSONAS, type Persona } from '@/lib/personas';
 import type { Card as CardRow, Run } from '@/lib/insforge';
 
@@ -20,17 +22,20 @@ export function Feed({ initialRuns, initialCards, initialRunId }: Props) {
   const [, startTransition] = useTransition();
 
   const viewer = PERSONAS.find(p => p.key === viewerKey)!;
+  const orgName = process.env.NEXT_PUBLIC_ORG_NAME ?? 'Org';
+  const activeRun = runs.find(r => r.id === runId);
 
-  // Poll every 2s — InsForge realtime WS can replace this in V2 polish.
   useEffect(() => {
     if (!runId) return;
     const t = setInterval(async () => {
-      const res = await fetch(`/api/runs/${runId}/cards`, { cache: 'no-store' });
-      if (res.ok) {
-        const d = await res.json();
+      const [c, r] = await Promise.all([
+        fetch(`/api/runs/${runId}/cards`, { cache: 'no-store' }),
+        fetch(`/api/runs`, { cache: 'no-store' }),
+      ]);
+      if (c.ok) {
+        const d = await c.json();
         startTransition(() => setCards(d.cards ?? []));
       }
-      const r = await fetch(`/api/runs`, { cache: 'no-store' });
       if (r.ok) {
         const d = await r.json();
         startTransition(() => setRuns(d.runs ?? []));
@@ -40,40 +45,144 @@ export function Feed({ initialRuns, initialCards, initialRunId }: Props) {
   }, [runId]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight">TeamHQ</h1>
-          <span className="text-sm text-slate-500">
-            / {process.env.NEXT_PUBLIC_ORG_NAME ?? 'Org'} / migrations
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <select
-              value={runId ?? ''}
-              onChange={e => setRunId(e.target.value || null)}
-              className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
-            >
-              {runs.map(r => (
-                <option key={r.id} value={r.id}>
-                  {r.trigger_source?.slice(0, 50) ?? r.id.slice(0, 8)} — {r.status}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <ViewAsToggle current={viewerKey} onChange={setViewerKey} />
-      </header>
+    <div className="min-h-screen relative">
+      <Chrome
+        orgName={orgName}
+        runs={runs}
+        runId={runId}
+        setRunId={setRunId}
+        viewer={viewer}
+      />
+      <ViewAsToggle current={viewerKey} onChange={setViewerKey} />
 
-      <main className="max-w-5xl mx-auto px-6 py-6 space-y-3">
+      <main className="relative max-w-[1080px] mx-auto px-6 py-10">
+        {/* Run-header — feels like a magazine masthead */}
+        {activeRun && <RunMasthead run={activeRun} cardCount={cards.length} />}
+
+        {/* Feed body — two-column with timeline rail */}
         {cards.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
-            No cards yet for this run. Trigger an agent run from the terminal:
-            <pre className="inline-block mx-2 px-2 py-1 bg-slate-900 text-slate-100 rounded text-xs">python -m agent fastapi-go</pre>
-          </div>
+          <EmptyState />
         ) : (
-          cards.map(c => <Card key={c.id} card={c} viewer={viewer} />)
+          <div className="relative">
+            {/* Continuous rail line behind the cards (under the dots) */}
+            <div
+              aria-hidden
+              className="absolute left-[44px] top-0 bottom-0 w-px bg-[var(--ink-4)]"
+            />
+            <div className="relative">
+              {cards.map((c, i) => (
+                <Card key={c.id} card={c} viewer={viewer} index={i} />
+              ))}
+              <FeedFoot count={cards.length} />
+            </div>
+          </div>
         )}
       </main>
+
+      <footer className="hairline-t mt-16">
+        <div className="max-w-[1080px] mx-auto px-6 py-6 flex items-center justify-between">
+          <div className="font-display italic text-[var(--ink-8)] text-[13px]">
+            TeamHQ · the org's decision surface · vol 1, no 1
+          </div>
+          <div className="flex items-center gap-4 text-[10.5px] smallcaps text-[var(--ink-7)]">
+            <span>built on hyperspell</span>
+            <span>·</span>
+            <span>nia</span>
+            <span>·</span>
+            <span>tensorlake</span>
+            <span>·</span>
+            <span>insforge</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function RunMasthead({ run, cardCount }: { run: Run; cardCount: number }) {
+  const started = run.started_at ? new Date(run.started_at) : null;
+  const finished = run.finished_at ? new Date(run.finished_at) : null;
+  const duration =
+    started && finished ? `${Math.round((finished.getTime() - started.getTime()) / 1000)}s` : '—';
+
+  return (
+    <section className="mb-12">
+      <div className="flex items-baseline gap-3 text-[var(--ink-8)] mb-3">
+        <span className="smallcaps text-[var(--ink-7)]">scenario</span>
+        <span className="font-mono text-[10.5px]">{run.id.slice(0, 8)}</span>
+        <span className="text-[var(--ink-6)]">·</span>
+        <StatusInk status={run.status} />
+      </div>
+
+      <h1 className="font-display text-[40px] leading-[1.05] text-[var(--ink-12)] tracking-tight mb-4 max-w-3xl">
+        {run.trigger_source ?? 'Untitled run'}
+      </h1>
+
+      {/* Subhead grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 hairline-t hairline-b py-4">
+        <Field label="repository" value={run.repo} mono />
+        <Field label="trigger" value={run.trigger_type} />
+        <Field label="duration" value={duration} mono />
+        <Field label="cards emitted" value={String(cardCount)} mono />
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="smallcaps text-[var(--ink-7)] mb-1">{label}</div>
+      <div
+        className={`text-[13.5px] text-[var(--ink-11)] ${mono ? 'font-mono' : 'font-display italic text-[15px]'} truncate`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function StatusInk({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    starting: 'var(--paper)',
+    completed: 'var(--ok)',
+    failed: 'var(--err)',
+    halted: 'var(--warn)',
+  };
+  const ink = map[status] ?? 'var(--ink-9)';
+  return (
+    <span className="flex items-center gap-1.5 smallcaps" style={{ color: ink }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: ink }} />
+      {status}
+    </span>
+  );
+}
+
+function FeedFoot({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-[44px_1fr] gap-0">
+      <div className="hairline-r" />
+      <div className="py-6 pl-6 flex items-center gap-3">
+        <Glyph.Dot size={6} className="text-[var(--ink-6)]" />
+        <span className="smallcaps text-[var(--ink-7)]">end of run · {count} cards</span>
+        <span className="ml-auto font-display italic text-[var(--ink-7)] text-[12px]">∎</span>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="hairline px-8 py-14 text-center">
+      <div className="font-display italic text-[var(--ink-9)] text-[18px] mb-3">
+        nothing on the wire yet
+      </div>
+      <div className="text-[12.5px] text-[var(--ink-8)] mb-5">
+        Trigger a scenario from the terminal to populate the feed.
+      </div>
+      <code className="inline-block font-mono text-[12px] px-3 py-1.5 bg-[var(--ink-1)] text-[var(--paper)] hairline">
+        $ python -m agent fastapi-go
+      </code>
     </div>
   );
 }

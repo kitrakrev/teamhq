@@ -1,26 +1,158 @@
 @import "tailwindcss";
 
+/* ----------------------------------------------------------------------------
+   TeamHQ — engineering decision surface
+   Aesthetic: editorial telemetry. Dark carbon base + warm parchment accent.
+   Typography: Instrument Serif for headlines, JetBrains Mono for everything else.
+   ---------------------------------------------------------------------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Ink scale — cool near-black, perceptual contrast steps */
+  --ink-0:   #0b0c0e;       /* page bg */
+  --ink-1:   #111316;       /* sunk surface */
+  --ink-2:   #161a1f;       /* card */
+  --ink-3:   #1c2127;       /* card hover */
+  --ink-4:   #232931;       /* divider */
+  --ink-5:   #2d343d;
+  --ink-6:   #3a424c;       /* tertiary text */
+  --ink-7:   #4f5864;
+  --ink-8:   #6b7480;
+  --ink-9:   #889099;       /* secondary text */
+  --ink-10:  #a8aeb6;       /* body */
+  --ink-11:  #c8ccd1;       /* primary text */
+  --ink-12:  #e4e6e9;       /* headline */
+
+  /* Parchment — single warm accent, sparse */
+  --paper:        #c9b790;
+  --paper-muted:  #8a7c5e;
+  --paper-faint:  rgba(201, 183, 144, 0.10);
+
+  /* Team inks — desaturated pencil hues */
+  --team-backend: #c5a063;       /* amber, dialed back */
+  --team-ds:      #6fa085;       /* sage */
+  --team-ui:      #6c8fb8;       /* graphite blue */
+  --team-devops:  #c08661;       /* clay */
+  --team-arch:    #9a82b5;       /* mauve */
+  --team-pm:      #b07a89;       /* rose-ink */
+
+  /* Status */
+  --ok:    #6fa085;
+  --warn:  #c08661;
+  --err:   #b07a89;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--ink-0);
+  --color-foreground: var(--ink-12);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html, body { background: var(--ink-0); }
 
+/* Body uses mono — engineering tool aesthetic */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "ss01", "ss02", "calt", "zero";
+  letter-spacing: -0.005em;
+  font-weight: 400;
+}
+
+/* Display reserved for headlines */
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+/* Subtle paper grain on the body — engineering tool, not magazine */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(201, 183, 144, 0.03), transparent 50%),
+    radial-gradient(circle at 80% 100%, rgba(111, 160, 133, 0.025), transparent 60%);
+  mix-blend-mode: screen;
+}
+
+/* Hairline divider used throughout */
+.hairline { border-color: var(--ink-4); }
+.hairline-t { border-top: 1px solid var(--ink-4); }
+.hairline-b { border-bottom: 1px solid var(--ink-4); }
+.hairline-l { border-left: 1px solid var(--ink-4); }
+.hairline-r { border-right: 1px solid var(--ink-4); }
+
+/* Small caps — for labels */
+.smallcaps {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+/* Marquee tick — for the live ribbon up top */
+@keyframes tick {
+  0%, 60%   { opacity: 1; }
+  61%, 100% { opacity: 0.25; }
+}
+.tick-pulse { animation: tick 1.6s steps(2, end) infinite; }
+
+/* Card stem — connects the timeline rail to the card */
+.stem-glow {
+  box-shadow:
+    0 0 0 1px var(--ink-4),
+    0 0 0 2px var(--ink-1),
+    0 0 24px -6px currentColor;
+}
+
+/* Reveal on first paint — staggered via inline style delays */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Scrollbar — thin, ink */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--ink-0); }
+::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-6); }
+
+/* Selection on links */
+a { color: var(--ink-11); text-decoration: none; }
+a:hover { color: var(--paper); }
+
+/* Footnote markers */
+.footnote-num {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--paper);
+  vertical-align: super;
+}
+
+/* Source-chip rule */
+.source-chip {
+  border-left: 1px solid var(--ink-5);
+  padding-left: 14px;
+  transition: border-color 220ms ease, color 220ms ease;
+}
+.source-chip:hover { border-left-color: var(--paper); }
+
+/* Persona pill ring */
+.ring-persona {
+  box-shadow: inset 0 0 0 1px var(--ink-5);
+}
+.ring-persona-active {
+  box-shadow: inset 0 0 0 1px var(--paper), 0 0 0 4px rgba(201, 183, 144, 0.08);
+}
+
+/* Disabled action */
+.disabled-action {
+  color: var(--ink-7);
+  background: transparent;
+  border: 1px solid var(--ink-4);
+  cursor: not-allowed;
 }
