@@ -1,10 +1,15 @@
 // Server-side InsForge wrapper. Never imported by client components — the
-// access key is server-only.
-const URL = process.env.INSFORGE_PROJECT_URL!;
-const KEY = process.env.INSFORGE_ACCESS_API_KEY!;
-
-if (!URL || !KEY) {
-  throw new Error('INSFORGE_PROJECT_URL or INSFORGE_ACCESS_API_KEY missing');
+// access key is server-only. We resolve env at call time (not module load)
+// so Next.js build/static-analysis doesn't crash if the var isn't set yet.
+function URL(): string {
+  const v = process.env.INSFORGE_PROJECT_URL;
+  if (!v) throw new Error('INSFORGE_PROJECT_URL missing');
+  return v;
+}
+function KEY(): string {
+  const v = process.env.INSFORGE_ACCESS_API_KEY;
+  if (!v) throw new Error('INSFORGE_ACCESS_API_KEY missing');
+  return v;
 }
 
 export type Card = {
@@ -42,8 +47,8 @@ export type User = {
 };
 
 async function get<T>(path: string): Promise<T> {
-  const r = await fetch(URL + path, {
-    headers: { 'x-api-key': KEY },
+  const r = await fetch(URL() + path, {
+    headers: { 'x-api-key': KEY() },
     cache: 'no-store',
   });
   if (!r.ok) throw new Error(`InsForge ${path} -> ${r.status}: ${await r.text()}`);
@@ -116,9 +121,14 @@ export type OAuthToken = {
 };
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(URL + path, {
+  const r = await fetch(URL() + path, {
     method: 'POST',
-    headers: { 'x-api-key': KEY, 'content-type': 'application/json' },
+    headers: {
+      'x-api-key': KEY(),
+      'content-type': 'application/json',
+      // InsForge follows PostgREST conventions — without this, POSTs return [].
+      Prefer: 'return=representation',
+    },
     body: JSON.stringify(body),
     cache: 'no-store',
   });
@@ -127,9 +137,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function patch<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(URL + path, {
+  const r = await fetch(URL() + path, {
     method: 'PATCH',
-    headers: { 'x-api-key': KEY, 'content-type': 'application/json' },
+    headers: { 'x-api-key': KEY(), 'content-type': 'application/json' },
     body: JSON.stringify(body),
     cache: 'no-store',
   });
@@ -138,9 +148,9 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function del(path: string): Promise<void> {
-  const r = await fetch(URL + path, {
+  const r = await fetch(URL() + path, {
     method: 'DELETE',
-    headers: { 'x-api-key': KEY },
+    headers: { 'x-api-key': KEY() },
     cache: 'no-store',
   });
   if (!r.ok) throw new Error(`InsForge DELETE ${path} -> ${r.status}: ${await r.text()}`);

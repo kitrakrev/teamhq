@@ -2,12 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "installCommand": "npm install",
-  "regions": ["iad1"],
-  "env": {
-    "INSFORGE_PROJECT_URL": "@insforge_project_url",
-    "INSFORGE_ACCESS_API_KEY": "@insforge_access_api_key",
-    "ORG_ID": "@org_id",
-    "NEXT_PUBLIC_INSFORGE_URL": "@insforge_project_url",
-    "NEXT_PUBLIC_ORG_NAME": "@org_name"
-  }
+  "regions": ["iad1"]
 }
