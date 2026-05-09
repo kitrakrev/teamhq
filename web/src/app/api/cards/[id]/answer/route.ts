@@ -48,7 +48,7 @@ export async function POST(
     return NextResponse.json({ error: 'answer or choice required' }, { status: 400 });
   }
 
-  const viewer = await getViewer(req);
+  const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
   const card = await getCard(id);
