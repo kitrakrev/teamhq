@@ -19,17 +19,21 @@ def _env(name: str) -> str:
     return v
 
 
-URL = _env("INSFORGE_PROJECT_URL")
-KEY = _env("INSFORGE_ACCESS_API_KEY")
+def _url() -> str:
+    return _env("INSFORGE_PROJECT_URL")
+
+
+def _key() -> str:
+    return _env("INSFORGE_ACCESS_API_KEY")
 
 
 def _req(method: str, path: str, body: Any | None = None) -> Any:
     headers = {
-        "x-api-key": KEY,
+        "x-api-key": _key(),
         "Content-Type": "application/json",
     }
     data = json.dumps(body).encode() if body is not None else None
-    request = urllib.request.Request(URL + path, data=data, headers=headers, method=method)
+    request = urllib.request.Request(_url() + path, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=30) as resp:
             payload = resp.read().decode()
