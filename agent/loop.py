@@ -21,6 +21,7 @@ from typing import Any
 
 from . import hyperspell, sandbox
 from . import questions as questions_mod
+from . import acceptance as acceptance_mod
 from .cards import emit
 from .insforge import insert, list_rows, update
 
@@ -126,6 +127,43 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
 
     teams = teams_for_paths(trigger.affected_paths)
     print(f"[loop] team mapping: { {t: len(fs) for t, fs in teams.items()} }")
+
+    # Phase 1.0 — for feature-proposal triggers, generate acceptance criteria
+    # FIRST so plans + ship are gated on agreed-upon definition of done.
+    if trigger.trigger_type == "feature_proposal":
+        try:
+            criteria = acceptance_mod.generate(
+                feature=trigger.trigger_source,
+                teams=list(teams.keys()),
+                context=", ".join(trigger.affected_paths[:6]),
+            )
+            emit(
+                run_id=run_id,
+                org_id=org_id,
+                project_id=trigger.project_id,
+                card_type="acceptance_criteria",
+                title=f"Acceptance criteria · {len(criteria)} items",
+                body={
+                    "feature": trigger.trigger_source,
+                    "criteria": [
+                        {
+                            "id": c.id,
+                            "statement": c.statement,
+                            "kind": c.kind,
+                            "test_command": c.test_command,
+                            "expected": c.expected,
+                            "owner_role": c.owner_role,
+                            "status": c.status,
+                        }
+                        for c in criteria
+                    ],
+                },
+                visibility={"read": ["*"], "act": ["role:lead", "role:architect"]},
+                status="awaiting_approval",
+            )
+            print(f"[loop] acceptance_criteria emitted: {len(criteria)} items")
+        except Exception as e:
+            print(f"[loop] AC generation skipped: {e}")
 
     # Phase 1.5 — fan out per-role clarifying questions BEFORE plan synthesis.
     # Each question is grounded in the team-lead's history (Hyperspell). The

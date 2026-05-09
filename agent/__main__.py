@@ -34,6 +34,17 @@ SCENARIOS: dict[str, TriggerSpec] = {
             "frontend/src/api-client.ts",  # ui
         ],
     ),
+    "feature-streaming": TriggerSpec(
+        repo="kitrakrev/teamhq-hero",
+        trigger_type="feature_proposal",
+        trigger_source="Feature: add streaming completions to chat UI for paying customers",
+        affected_paths=[
+            "src/api/main.py",
+            "src/ml/inference_client.py",
+            "frontend/src/api-client.ts",
+            "src/infra/Dockerfile",
+        ],
+    ),
 }
 
 
