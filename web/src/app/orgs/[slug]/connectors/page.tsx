@@ -7,6 +7,8 @@
 // these for the seeded tenant only).
 import { ifg } from '@/lib/insforge';
 import { getSession } from '@/lib/session';
+import { nia } from '@/lib/nia';
+import { NiaPanel } from '@/components/connectors/NiaPanel';
 import {
   GitHubIcon,
   SlackIcon,
@@ -35,15 +37,17 @@ type Connector = {
   available: boolean;
 };
 
+// All providers route through Hyperspell's connect flow.
+// Calendar isn't on Hyperspell's list yet -> mark unavailable.
 const CONNECTORS: Connector[] = [
-  { key: 'slack',    name: 'Slack',            description: 'Decisions, threads, channels',     icon: <SlackIcon className="h-7 w-7" />,    startHref: '/api/oauth/slack/start',    available: true },
-  { key: 'notion',   name: 'Notion',           description: 'Specs, designs, runbooks',         icon: <NotionIcon className="h-7 w-7" />,   startHref: '/api/oauth/notion/start',   available: true },
-  { key: 'github',   name: 'GitHub',           description: 'Repos, PRs, runs',                 icon: <GitHubIcon className="h-7 w-7" />,   startHref: '/api/oauth/github/start',   available: true },
-  { key: 'linear',   name: 'Linear',           description: 'Issues and projects',              icon: <LinearIcon className="h-7 w-7" />,   startHref: '/api/oauth/linear/start',   available: false },
-  { key: 'gmail',    name: 'Gmail',            description: 'Inbound stakeholder mail',         icon: <GmailIcon className="h-7 w-7" />,    startHref: '/api/oauth/gmail/start',    available: false },
-  { key: 'teams',    name: 'Microsoft Teams',  description: 'Org-wide chat surface',            icon: <TeamsIcon className="h-7 w-7" />,    startHref: '/api/oauth/teams/start',    available: false },
-  { key: 'drive',    name: 'Google Drive',     description: 'Specs and exports',                icon: <DriveIcon className="h-7 w-7" />,    startHref: '/api/oauth/drive/start',    available: false },
-  { key: 'calendar', name: 'Google Calendar',  description: 'Standups, releases, syncs',        icon: <CalendarIcon className="h-7 w-7" />, startHref: '/api/oauth/calendar/start', available: false },
+  { key: 'slack',    name: 'Slack',            description: 'Decisions, threads, channels',     icon: <SlackIcon className="h-7 w-7" />,    startHref: '/api/oauth/hyperspell/start?provider=slack',           available: true },
+  { key: 'notion',   name: 'Notion',           description: 'Specs, designs, runbooks',         icon: <NotionIcon className="h-7 w-7" />,   startHref: '/api/oauth/hyperspell/start?provider=notion',          available: true },
+  { key: 'github',   name: 'GitHub',           description: 'Repos, PRs, runs',                 icon: <GitHubIcon className="h-7 w-7" />,   startHref: '/api/oauth/hyperspell/start?provider=github',          available: true },
+  { key: 'linear',   name: 'Linear',           description: 'Issues and projects',              icon: <LinearIcon className="h-7 w-7" />,   startHref: '/api/oauth/hyperspell/start?provider=linear',          available: true },
+  { key: 'gmail',    name: 'Gmail',            description: 'Inbound stakeholder mail',         icon: <GmailIcon className="h-7 w-7" />,    startHref: '/api/oauth/hyperspell/start?provider=google_mail',     available: true },
+  { key: 'teams',    name: 'Microsoft Teams',  description: 'Org-wide chat surface',            icon: <TeamsIcon className="h-7 w-7" />,    startHref: '/api/oauth/hyperspell/start?provider=microsoft_teams', available: true },
+  { key: 'drive',    name: 'Google Drive',     description: 'Specs and exports',                icon: <DriveIcon className="h-7 w-7" />,    startHref: '/api/oauth/hyperspell/start?provider=google_drive',    available: true },
+  { key: 'calendar', name: 'Google Calendar',  description: 'Standups, releases, syncs',        icon: <CalendarIcon className="h-7 w-7" />, startHref: '#',                                                    available: false },
 ];
 
 function StatusPill({ state }: { state: 'connected' | 'not_connected' | 'unavailable' }) {
@@ -77,10 +81,11 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
   // connection state we'd ideally join through org_members; for V2 we treat
   // any connected token belonging to a member of the active org as
   // representing the org's connection.
-  const [members, indexedCount, teams] = await Promise.all([
+  const [members, indexedCount, teams, niaRepos] = await Promise.all([
     ifg.listOrgMembers(orgId).catch(() => []),
     ifg.countCardsWithDocuments(orgId).catch(() => 0),
     ifg.listTeams(orgId).catch(() => []),
+    nia.listRepos().catch(() => []),
   ]);
   const memberUserIds = new Set(members.map((m) => m.user_id));
 
@@ -117,16 +122,23 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Connectors</h1>
             <p className="text-base text-gray-500 mt-2">
               {orgId
-                ? 'The sources TeamHQ pulls signal from. Indexed in real time, scoped to your org.'
+                ? 'The sources TeamHQ pulls signal from. Hyperspell handles team-brain ingest. Nia handles world-context indexing.'
                 : 'Sign in to connect sources to your org.'}
             </p>
           </div>
           <div className="text-xs text-gray-500">
-            {indexedCount} indexed artifacts across {Math.max(1, teams.length)} teams
+            {indexedCount} team artifacts · {niaRepos.length} indexed repos
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Section: Team brain via Hyperspell */}
+        <div className="mt-8">
+          <div className="text-xs uppercase tracking-wider text-gray-500 mb-3">
+            Team brain · Hyperspell
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CONNECTORS.map((c) => {
             const state = stateFor(c);
             const connected = state === 'connected';
@@ -173,6 +185,21 @@ export default async function ConnectorsPage({ params }: { params: Promise<{ slu
               </div>
             );
           })}
+        </div>
+
+        {/* Section: World context via Nia */}
+        <div className="mt-12">
+          <div className="text-xs uppercase tracking-wider text-gray-500 mb-3">
+            World context · Nia
+          </div>
+          <NiaPanel
+            repos={niaRepos.map((r) => ({
+              id: r.id,
+              repository: r.repository,
+              branch: r.branch,
+              status: r.status,
+            }))}
+          />
         </div>
       </div>
     </main>
