@@ -1,0 +1,18 @@
+{
+  "backend": {
+    "id": "35b37816-eeb5-810e-89eb-d403cc63bb28",
+    "url": "https://www.notion.so/ADR-12-OpenAI-client-conventions-Backend-35b37816eeb5810e89ebd403cc63bb28"
+  },
+  "ds": {
+    "id": "35b37816-eeb5-8144-b5ca-ef9b2fce2418",
+    "url": "https://www.notion.so/ADR-15-Embedding-pipeline-standards-DS-35b37816eeb58144b5caef9b2fce2418"
+  },
+  "ui": {
+    "id": "35b37816-eeb5-817b-9e75-d762d77463cd",
+    "url": "https://www.notion.so/ADR-18-Frontend-API-client-conventions-UI-35b37816eeb5817b9e75d762d77463cd"
+  },
+  "devops": {
+    "id": "35b37816-eeb5-8133-8052-c21deae8fc92",
+    "url": "https://www.notion.so/ADR-21-Deployment-policy-DevOps-35b37816eeb581338052c21deae8fc92"
+  }
+}
