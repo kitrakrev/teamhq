@@ -24,6 +24,16 @@ type CardBody = {
   team_plans?: Record<string, { answer: string; citations: string[] }>;
   python_version?: string;
   url?: string;
+  // question card fields
+  to_user?: { email?: string; name?: string };
+  to_role?: string;
+  text?: string;
+  options?: string[];
+  free_text_ok?: boolean;
+  rationale?: string;
+  answered_by?: string;
+  answered_at?: string;
+  choice?: string;
 };
 
 const TYPE_CONFIG: Record<string, { glyph: GlyphKey; label: string }> = {
@@ -122,6 +132,25 @@ export function Card({ card, viewer, index = 0 }: Props) {
           <p className="font-display italic text-[16px] text-[var(--paper)] mb-3 leading-snug">
             “{body.trigger_source}”
           </p>
+        )}
+
+        {/* Question card — render text + options + answer form */}
+        {card.card_type === 'question' && body.text && (
+          <QuestionBlock
+            cardId={card.id}
+            text={body.text}
+            options={body.options ?? []}
+            freeTextOk={body.free_text_ok ?? true}
+            rationale={body.rationale}
+            toUserEmail={body.to_user?.email}
+            toUserName={body.to_user?.name}
+            status={card.status}
+            answer={body.answer}
+            choice={body.choice}
+            answeredBy={body.answered_by}
+            answeredAt={body.answered_at}
+            viewer={viewer}
+          />
         )}
 
         {/* Affected paths — code chips */}
@@ -428,5 +457,150 @@ function ActionButton({
       <G size={10} className={kind === 'comment' ? '' : ''} style={{ color: config.color } as React.CSSProperties} />
       {busy ? '…' : config.label}
     </button>
+  );
+}
+
+function QuestionBlock({
+  cardId,
+  text,
+  options,
+  freeTextOk,
+  rationale,
+  toUserEmail,
+  toUserName,
+  status,
+  answer,
+  choice,
+  answeredBy,
+  answeredAt,
+  viewer,
+}: {
+  cardId: string;
+  text: string;
+  options: string[];
+  freeTextOk: boolean;
+  rationale?: string;
+  toUserEmail?: string;
+  toUserName?: string;
+  status: string | null;
+  answer?: string;
+  choice?: string;
+  answeredBy?: string;
+  answeredAt?: string;
+  viewer: Persona;
+}) {
+  const router = useRouter();
+  const isAnswered = status === 'answered' || !!answeredBy;
+  const canAnswer =
+    !isAnswered &&
+    (viewer.email === toUserEmail || viewer.role === 'architect');
+  const [busy, setBusy] = useState(false);
+  const [free, setFree] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(payload: { answer?: string; choice?: string }) {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch(`/api/cards/${cardId}/answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(data?.message ?? data?.error ?? 'submit failed');
+        return;
+      }
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 space-y-3">
+      <p className="font-display italic text-[16px] text-[var(--paper)] leading-snug">
+        “{text}”
+      </p>
+
+      {rationale && (
+        <p className="text-[12.5px] text-[var(--ink-9)] leading-snug">
+          <span className="smallcaps text-[var(--ink-7)] mr-1">why</span>
+          {rationale}
+        </p>
+      )}
+
+      {toUserName && (
+        <div className="text-[11px] smallcaps text-[var(--ink-7)]">
+          asked of <span style={{ color: 'var(--paper)' }}>{toUserName}</span>
+          {toUserEmail && <span className="text-[var(--ink-8)]"> · {toUserEmail}</span>}
+        </div>
+      )}
+
+      {isAnswered ? (
+        <div className="hairline px-3 py-2 text-[13px] text-[var(--ink-11)]">
+          <div className="smallcaps text-[var(--ok)] mb-1">answered</div>
+          {choice && <div>Choice: <span className="text-[var(--ink-12)]">{choice}</span></div>}
+          {answer && <div className="font-mono text-[12px] mt-1 text-[var(--ink-10)]">{answer}</div>}
+          {answeredBy && (
+            <div className="text-[10.5px] text-[var(--ink-7)] mt-1">
+              by {answeredBy} {answeredAt ? '· ' + new Date(answeredAt).toLocaleString() : ''}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {options.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  disabled={!canAnswer || busy}
+                  onClick={() => submit({ choice: opt, answer: opt })}
+                  className={
+                    canAnswer
+                      ? 'hairline px-3 py-1.5 smallcaps text-[var(--ink-11)] hover:text-[var(--ink-12)] hover:border-[var(--paper)] transition-colors'
+                      : 'disabled-action smallcaps px-3 py-1.5'
+                  }
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {freeTextOk && canAnswer && (
+            <div className="flex items-stretch gap-2">
+              <input
+                type="text"
+                value={free}
+                onChange={(e) => setFree(e.target.value)}
+                placeholder="…or type a custom answer"
+                className="flex-1 bg-transparent hairline px-3 py-1.5 text-[13px] text-[var(--ink-11)] placeholder:text-[var(--ink-7)] focus:border-[var(--paper)] focus:outline-none"
+                disabled={busy}
+              />
+              <button
+                disabled={!free.trim() || busy}
+                onClick={() => submit({ answer: free.trim() })}
+                className="hairline px-3 py-1.5 smallcaps text-[var(--ink-11)] hover:text-[var(--ink-12)] hover:border-[var(--paper)] transition-colors disabled:text-[var(--ink-7)] disabled:cursor-not-allowed"
+              >
+                Submit
+              </button>
+            </div>
+          )}
+
+          {!canAnswer && (
+            <div className="text-[11px] smallcaps text-[var(--ink-7)]">
+              read-only — only {toUserName || toUserEmail || 'the addressed user'} can answer
+            </div>
+          )}
+
+          {err && (
+            <div className="text-[12px] text-[var(--err)]">{err}</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

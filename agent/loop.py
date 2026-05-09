@@ -186,6 +186,13 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
         )
         print(f"[loop] team_plan {team}: {len(plan['documents'])} citations")
 
+    # Quorum gate — only proceed to sandbox + PR after all team_plan cards
+    # are approved (or, in non-blocking mode, just record the gate state).
+    import os
+    block_until_approved = os.environ.get("TEAMHQ_BLOCK_UNTIL_APPROVED", "0") == "1"
+    if block_until_approved:
+        _wait_for_quorum(run_id=run_id, expected_teams=list(teams.keys()), timeout_s=900)
+
     _run_sandbox(run_id=run_id, trigger=trigger, org_id=org_id)
 
     pr_url = _open_pr(run_id=run_id, trigger=trigger, team_plans=team_plans, org_id=org_id)
@@ -201,6 +208,31 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
     )
     print(f"[loop] run done: {run_id}")
     return final
+
+
+def _wait_for_quorum(*, run_id: str, expected_teams: list[str], timeout_s: int = 900) -> None:
+    """Poll cards table until all team_plan cards for this run are approved.
+
+    Blocks the agent loop. If timeout is hit, emits a halt card and raises.
+    Default mode is OFF (TEAMHQ_BLOCK_UNTIL_APPROVED=1 to enable) so demo
+    runs don't stall when no human is clicking.
+    """
+    deadline = time.time() + timeout_s
+    needed = set(expected_teams)
+    while time.time() < deadline:
+        rows = list_rows("cards", limit=200)
+        approved_teams = {
+            r.get("team_id")
+            for r in rows
+            if r.get("run_id") == run_id
+            and r.get("card_type") == "team_plan"
+            and r.get("status") == "approved"
+        }
+        if approved_teams.issuperset(needed):
+            print(f"[loop] quorum reached: {sorted(approved_teams)}")
+            return
+        time.sleep(3)
+    raise RuntimeError(f"quorum timeout after {timeout_s}s; needed: {needed}")
 
 
 def _lookup_latest_run_id(trigger: TriggerSpec) -> str:

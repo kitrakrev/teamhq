@@ -101,6 +101,19 @@ def list_tools() -> list[dict]:
                 "required": ["card_id", "text"],
             },
         },
+        {
+            "name": "teamhq_answer_question",
+            "description": "Answer a question card the agent posted to your role. Either pick an option or supply free text. Required: card_id. One of: choice OR answer.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "card_id": {"type": "string"},
+                    "choice": {"type": "string"},
+                    "answer": {"type": "string"},
+                },
+                "required": ["card_id"],
+            },
+        },
     ]
 
 
@@ -157,6 +170,18 @@ def call_tool(name: str, args: dict) -> dict:
         cid = args["card_id"]
         body = {"text": args["text"]}
         d = _http("POST", f"/api/cards/{cid}/comment", body)
+        return d if isinstance(d, dict) else {"result": d}
+
+    if name == "teamhq_answer_question":
+        cid = args["card_id"]
+        payload: dict = {}
+        if args.get("choice"):
+            payload["choice"] = args["choice"]
+        if args.get("answer"):
+            payload["answer"] = args["answer"]
+        if not payload:
+            return {"error": "choice or answer required"}
+        d = _http("POST", f"/api/cards/{cid}/answer", payload)
         return d if isinstance(d, dict) else {"result": d}
 
     return {"error": f"unknown tool {name}"}
