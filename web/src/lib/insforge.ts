@@ -174,6 +174,22 @@ export const ifg = {
     if (!orgId) return [];
     return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc${orgClause(orgId)}`);
   },
+  async createCard(orgId: string, input: {
+    run_id: string;
+    project_id?: string | null;
+    card_type: string;
+    title?: string | null;
+    team_id?: string | null;
+    body?: unknown;
+    status?: string | null;
+    visibility?: unknown;
+  }): Promise<Card> {
+    const created = await post<Card[] | Card>('/api/database/records/cards', {
+      org_id: orgId,
+      ...input,
+    });
+    return Array.isArray(created) ? created[0] : created;
+  },
   async listUsers(orgId: string | null): Promise<User[]> {
     if (!orgId) return [];
     return get<User[]>(`/api/database/records/users?order=created_at.asc${orgClause(orgId)}`);

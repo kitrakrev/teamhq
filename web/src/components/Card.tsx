@@ -47,6 +47,11 @@ type CardBody = {
   // acceptance_criteria card fields
   feature?: string;
   criteria?: AcceptanceCriterion[];
+  // user_message card fields
+  author_email?: string;
+  author_name?: string;
+  author_team?: string;
+  author_role?: string;
 };
 
 const TYPE_CONFIG: Record<string, { glyph: GlyphKey; label: string }> = {
@@ -63,6 +68,7 @@ const TYPE_CONFIG: Record<string, { glyph: GlyphKey; label: string }> = {
   override:             { glyph: 'Override', label: 'Override' },
   audit:                { glyph: 'Audit',    label: 'Audit' },
   acceptance_criteria:  { glyph: 'Check',    label: 'Acceptance Criteria' },
+  user_message:         { glyph: 'Q',        label: 'Message' },
 };
 
 type Props = {
@@ -165,6 +171,19 @@ export function Card({ card, viewer, index = 0 }: Props) {
             answeredAt={body.answered_at}
             viewer={viewer}
           />
+        )}
+
+        {/* User message card — chat-style bubble */}
+        {card.card_type === 'user_message' && body.text && (
+          <div className="mt-2 hairline px-4 py-3 max-w-2xl"
+               style={{ background: 'color-mix(in srgb, var(--paper) 4%, transparent)', borderColor: 'var(--paper-muted)' }}>
+            <p className="text-[14px] text-[var(--ink-12)] leading-snug whitespace-pre-wrap">{body.text}</p>
+            {body.author_name && (
+              <div className="mt-2 smallcaps text-[var(--ink-7)]">
+                — {body.author_name}{body.author_team ? ` · ${body.author_team}` : ''}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Acceptance criteria card — render checklist */}
