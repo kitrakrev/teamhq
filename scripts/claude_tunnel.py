@@ -117,6 +117,186 @@ async def reply(
     return JSONResponse({"ok": True, "card_id": card_id, "started": True}, status_code=202)
 
 
+def _emit_card(payload: dict) -> dict:
+    """Insert a new card via InsForge."""
+    import urllib.request
+    url = os.environ["INSFORGE_PROJECT_URL"] + "/api/database/records/cards"
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode(), method="POST",
+        headers={
+            "x-api-key": os.environ["INSFORGE_ACCESS_API_KEY"],
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+    )
+    try:
+        body = urllib.request.urlopen(req, timeout=15).read().decode()
+        rows = json.loads(body) if body else []
+        return rows[0] if isinstance(rows, list) and rows else {}
+    except Exception as e:
+        print(f"[reply] emit err: {e}")
+        return {}
+
+
+def _get_run(run_id: str) -> dict:
+    import urllib.request
+    url = os.environ["INSFORGE_PROJECT_URL"] + f"/api/database/records/runs?id=eq.{run_id}"
+    req = urllib.request.Request(url, headers={"x-api-key": os.environ["INSFORGE_ACCESS_API_KEY"]})
+    try:
+        rows = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
+        return rows[0] if rows else {}
+    except Exception as e:
+        print(f"[reply] get_run err: {e}")
+        return {}
+
+
+def _execute_code_action(*, run_id: str, org_id: str, project_id: str | None,
+                        prompt: str, source_card_id: str | None, author_name: str | None) -> None:
+    """Clone the run's repo, hand it to Claude Code, push a branch, open PR.
+
+    Mirrors agent/loop.py::_open_pr but driven by a single chat message
+    instead of a multi-team plan.
+    """
+    import shutil as _shutil
+    import subprocess as _sp
+    import tempfile
+    import time as _t
+    from pathlib import Path
+
+    run = _get_run(run_id)
+    repo = run.get("repo")
+    if not repo:
+        _emit_card({
+            "org_id": org_id, "project_id": project_id, "run_id": run_id,
+            "card_type": "agent_reply",
+            "title": "Agent action skipped",
+            "body": {"text": "(no repo on this run; action skipped)", "kind": "comment",
+                     "in_reply_to_card_id": source_card_id},
+            "status": "info",
+        })
+        return
+
+    # Announce start.
+    start_card = _emit_card({
+        "org_id": org_id, "project_id": project_id, "run_id": run_id,
+        "card_type": "agent_reply",
+        "title": f"Agent acting on {repo} — Claude Code editing",
+        "team_id": None,
+        "body": {
+            "text": f"Cloning {repo}, running `claude -p` against the repo, opening a draft PR.",
+            "kind": "action",
+            "streaming": True,
+            "in_reply_to_card_id": source_card_id,
+            "in_reply_to_author": author_name,
+            "repo": repo,
+        },
+        "status": "streaming",
+    })
+    start_id = start_card.get("id")
+
+    branch = f"teamhq/chat-{run_id[:8]}-{int(_t.time())}"
+    pr_title = f"TeamHQ chat: {prompt[:60]}"
+
+    if not _shutil.which("claude") or not _shutil.which("git") or not _shutil.which("gh"):
+        if start_id:
+            _patch_card(start_id, {"body": {"text": "(claude/git/gh missing on tunnel host)", "streaming": False}, "status": "info"})
+        return
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            wd = Path(tmp) / "repo"
+            _sp.run(["git", "clone", "--depth", "1", f"https://github.com/{repo}.git", str(wd)],
+                    check=True, capture_output=True)
+            _sp.run(["git", "-C", str(wd), "checkout", "-b", branch], check=True, capture_output=True)
+
+            # Hand the prompt to Claude Code in the cloned repo.
+            claude_prompt = (
+                f"You are inside a cloned copy of {repo} on branch {branch}. "
+                f"A team member just asked: {prompt!r}\n\n"
+                "Make the smallest concrete code change that addresses the request. "
+                "Edit files directly. Don't try to land a huge change — focus on a "
+                "reviewable first step. After editing, write a one-line commit message."
+            )
+            res = _sp.run(
+                ["claude", "-p", claude_prompt, "--add-dir", str(wd), "--dangerously-skip-permissions"],
+                cwd=str(wd), capture_output=True, text=True, timeout=600,
+            )
+            print(f"[action] claude rc={res.returncode}, stdout={len(res.stdout)} chars")
+
+            diff = _sp.run(["git", "-C", str(wd), "status", "--porcelain"], capture_output=True, text=True)
+            if not diff.stdout.strip():
+                if start_id:
+                    _patch_card(start_id, {"body": {
+                        "text": "Claude ran but made no changes (no diff to push).",
+                        "kind": "comment", "streaming": False,
+                    }, "status": "info"})
+                return
+
+            _sp.run(["git", "-C", str(wd), "add", "-A"], check=True, capture_output=True)
+            _sp.run(
+                ["git", "-C", str(wd),
+                 "-c", "user.name=kitrakrev",
+                 "-c", "user.email=kitrakrev@users.noreply.github.com",
+                 "commit", "-q", "-m", f"teamhq chat: {prompt[:80]}"],
+                check=True, capture_output=True,
+            )
+            _sp.run(["git", "-C", str(wd), "push", "-u", "origin", branch], check=True, capture_output=True)
+
+            pr_body = (
+                f"## TeamHQ chat-driven change\n\n"
+                f"**Asker**: {author_name or 'team member'}\n\n"
+                f"**Prompt**: {prompt}\n\n"
+                f"**Branch**: `{branch}`\n\n---\n"
+                f"Claude Code (`claude -p`) edited the repo in a tunnel-hosted sandbox. "
+                f"This PR is the smallest reviewable first step."
+            )
+            pr_res = _sp.run(
+                ["gh", "pr", "create", "--repo", repo, "--head", branch, "--base", "main",
+                 "--title", pr_title, "--body", pr_body, "--draft"],
+                check=True, capture_output=True, text=True,
+            )
+            url = pr_res.stdout.strip().splitlines()[-1]
+
+            # Finalise the action card.
+            if start_id:
+                _patch_card(start_id, {
+                    "body": {
+                        "text": f"Edited {repo}, pushed `{branch}`, opened draft PR.",
+                        "kind": "action",
+                        "streaming": False,
+                        "url": url,
+                        "branch": branch,
+                        "repo": repo,
+                    },
+                    "status": "info",
+                    "title": f"Agent acted: {url.split('/')[-1] if url else 'PR opened'}",
+                })
+            # Emit a separate pr_opened card so the existing UI rendering kicks in.
+            _emit_card({
+                "org_id": org_id, "project_id": project_id, "run_id": run_id,
+                "card_type": "pr_opened",
+                "title": f"PR opened — {url.split('/')[-1]}",
+                "body": {"url": url, "repo": repo, "branch": branch, "title": pr_title},
+                "status": "opened",
+            })
+            print(f"[action] PR opened: {url}")
+    except _sp.CalledProcessError as e:
+        msg = (e.stderr or b"").decode(errors="replace")[-600:]
+        print(f"[action] failed: {msg}")
+        if start_id:
+            _patch_card(start_id, {"body": {
+                "text": f"(action failed) {msg}",
+                "kind": "comment", "streaming": False,
+            }, "status": "info"})
+    except Exception as e:
+        print(f"[action] error: {e}")
+        if start_id:
+            _patch_card(start_id, {"body": {
+                "text": f"(action error) {e}",
+                "kind": "comment", "streaming": False,
+            }, "status": "info"})
+
+
 def _patch_card(card_id: str, payload: dict) -> None:
     import urllib.error, urllib.request
 
@@ -248,6 +428,20 @@ def _run_reply_pipeline(body: dict) -> None:
         final_payload["team_id"] = to_team
     _patch_card(card_id, final_payload)
     print(f"[reply] card {card_id[:8]} done: kind={kind} to={to_user or to_team or '-'}")
+
+    # If Claude classified the message as an `action`, run the code-action
+    # pipeline next: clone repo → claude --add-dir → push → open PR.
+    if kind == "action":
+        run_id = body.get("run_id")
+        org_id = body.get("org_id")
+        project_id = body.get("project_id")
+        action_prompt = body.get("user_text") or visible or ""
+        if run_id and org_id:
+            _execute_code_action(
+                run_id=run_id, org_id=org_id, project_id=project_id,
+                prompt=action_prompt, source_card_id=source_card_id,
+                author_name=author_name,
+            )
 
 
 @app.post("/chat")
