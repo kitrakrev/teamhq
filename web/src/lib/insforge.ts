@@ -35,6 +35,7 @@ export type Run = {
   finished_at: string | null;
   pr_url: string | null;
   created_at: string;
+  project_id?: string | null;
 };
 
 export type User = {
