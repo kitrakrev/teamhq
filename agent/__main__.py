@@ -34,6 +34,17 @@ SCENARIOS: dict[str, TriggerSpec] = {
             "frontend/src/api-client.ts",  # ui
         ],
     ),
+    "react-nextjs": TriggerSpec(
+        repo="kitrakrev/teamhq-hero",
+        trigger_type="manual",
+        trigger_source="Proposal: migrate React CRA to Next.js App Router",
+        affected_paths=[
+            "frontend/package.json",
+            "frontend/src/App.tsx",
+            "frontend/src/api-client.ts",
+            "src/infra/Dockerfile",
+        ],
+    ),
     "feature-streaming": TriggerSpec(
         repo="kitrakrev/teamhq-hero",
         trigger_type="feature_proposal",

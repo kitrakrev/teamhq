@@ -113,6 +113,8 @@ export default async function OnboardPage({ searchParams }: { searchParams: SP }
   ]);
 
   const ghToken = tokens.find((t) => t.provider === 'github');
+  const ghWriteToken = tokens.find((t) => t.provider === 'github_write');
+  const ghWriteEnabled = Boolean(process.env.GITHUB_OAUTH_CLIENT_ID);
   const step1Done = Boolean(ghToken);
   const step2Done = existingRepos.length > 0;
 
@@ -168,6 +170,18 @@ export default async function OnboardPage({ searchParams }: { searchParams: SP }
                   <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 ring-1 ring-green-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
                     <CheckIcon className="h-3 w-3" /> Connected as {ghToken?.github_login}
                   </span>
+                  {ghWriteToken ? (
+                    <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 ring-1 ring-purple-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                      <CheckIcon className="h-3 w-3" /> Write scope · {ghWriteToken.scopes ?? 'repo workflow'}
+                    </span>
+                  ) : ghWriteEnabled ? (
+                    <a
+                      href="/api/oauth/github-write/start?next=/onboard?step=2"
+                      className="text-xs font-medium text-purple-700 underline-offset-2 hover:underline"
+                    >
+                      Upgrade to write scopes (open PRs)
+                    </a>
+                  ) : null}
                   <a
                     href="/onboard?step=2"
                     className="bg-gray-900 text-white rounded-xl px-6 py-3 hover:bg-gray-800 active:scale-[.98] transition"

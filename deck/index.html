@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeamHQ — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-0:#0c0c0d; --ink-1:#121214; --ink-2:#171718; --ink-3:#1d1d1f;
+    --ink-4:#2a2a2d; --ink-5:#39393d; --ink-6:#4a4a4f; --ink-7:#6b6b71;
+    --ink-8:#8c8c92; --ink-9:#a8a8ad; --ink-10:#c4c4c8; --ink-11:#dedee2;
+    --ink-12:#f4f4f6;
+    --paper:#f3ecdb; --paper-muted:#a59779;
+    --backend:#d97706; --ds:#10b981; --ui:#0ea5e9; --devops:#f97316;
+    --architect:#a855f7; --pm:#f43f5e;
+    --serif:'Instrument Serif',ui-serif,Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-0);color:var(--ink-12);font-family:var(--mono);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  body{overflow:hidden}
+  .deck{position:relative;width:100vw;height:100vh}
+  .slide{
+    position:absolute;inset:0;padding:64px 88px;display:flex;flex-direction:column;
+    opacity:0;transform:translateX(40px);transition:opacity .55s ease,transform .55s ease;
+    pointer-events:none;overflow:auto;
+  }
+  .slide.active{opacity:1;transform:none;pointer-events:auto}
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:32px;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-7);border-bottom:1px solid var(--ink-4);padding-bottom:14px;margin-bottom:36px}
+  .brand{font-family:var(--serif);font-style:italic;font-size:22px;letter-spacing:0;text-transform:none;color:var(--paper);line-height:1}
+  .brand .slash{color:var(--ink-6);margin:0 6px}
+  .ed{color:var(--ink-9)}
+  .display{font-family:var(--serif);font-weight:400;line-height:1.04;letter-spacing:-0.01em}
+  h1.display{font-size:84px;margin:0 0 16px}
+  h2.display{font-size:56px;margin:0 0 14px}
+  h3.display{font-size:36px;margin:0 0 12px}
+  .smallcaps{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-8)}
+  .sub{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--ink-10);max-width:780px;line-height:1.3;margin:0 0 28px}
+  .body p{font-size:15px;color:var(--ink-11);max-width:740px;margin:0 0 14px}
+  .body strong{color:var(--paper);font-weight:500}
+  .body em{font-family:var(--serif);font-size:1.05em;color:var(--paper)}
+  .grid{display:grid;gap:28px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .stat{border-left:2px solid var(--paper-muted);padding:10px 0 10px 16px}
+  .stat .num{font-family:var(--serif);font-size:48px;color:var(--paper);line-height:1}
+  .stat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-8);margin-top:6px}
+  .ask{display:flex;flex-direction:column;gap:14px;margin-top:24px;max-width:920px}
+  .ask .q{display:flex;align-items:baseline;gap:14px;border-bottom:1px dashed var(--ink-4);padding-bottom:12px}
+  .ask .q .num{font-family:var(--serif);font-size:32px;color:var(--paper);min-width:48px;line-height:1}
+  .ask .q .t{font-family:var(--serif);font-size:24px;color:var(--ink-11);line-height:1.25;font-style:italic}
+  .img-frame{flex:1;display:flex;align-items:center;justify-content:center;border:1px solid var(--ink-4);background:var(--ink-1);overflow:hidden;margin-top:22px}
+  .img-frame img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .img-flush img{width:100%;height:100%;object-fit:cover;object-position:top}
+  .pull{font-family:var(--serif);font-style:italic;font-size:38px;color:var(--paper);line-height:1.2;border-left:3px solid var(--paper-muted);padding-left:24px;max-width:880px;margin:18px 0}
+  .footer{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;color:var(--ink-7);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;border-top:1px solid var(--ink-4);padding-top:14px}
+  .nav{position:fixed;bottom:18px;right:24px;display:flex;gap:8px;align-items:center;z-index:50}
+  .nav button{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink-2);color:var(--ink-10);border:1px solid var(--ink-4);padding:6px 12px;cursor:pointer}
+  .nav button:hover{color:var(--paper);border-color:var(--paper-muted)}
+  .counter{font-family:var(--mono);font-size:11px;color:var(--ink-7);min-width:60px;text-align:right}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink-4);padding:4px 10px;color:var(--ink-9)}
+  .chip.b{color:var(--backend);border-color:var(--backend)}
+  .chip.d{color:var(--ds);border-color:var(--ds)}
+  .chip.u{color:var(--ui);border-color:var(--ui)}
+  .chip.o{color:var(--devops);border-color:var(--devops)}
+  .chip.a{color:var(--architect);border-color:var(--architect)}
+  .checklist{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px;max-width:840px}
+  .checklist li{display:flex;gap:14px;align-items:flex-start;padding:10px 14px;border:1px solid var(--ink-4)}
+  .checklist .num{font-family:var(--serif);font-size:18px;color:var(--paper-muted);min-width:24px}
+  .checklist .t{font-size:13.5px;color:var(--ink-11)}
+  .checklist .meta{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-8);margin-top:4px}
+  .arch{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px}
+  .arch .col{border:1px solid var(--ink-4);padding:18px}
+  .arch h4{font-family:var(--serif);font-size:24px;margin:0 0 4px;color:var(--paper)}
+  .arch .role{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-8);margin-bottom:10px}
+  .arch p{font-size:12.5px;color:var(--ink-10);margin:0;line-height:1.55}
+  .timeline{display:grid;grid-template-columns:auto 1fr;gap:0 22px;margin-top:18px;max-width:880px}
+  .timeline .step{display:contents}
+  .timeline .dot{display:flex;flex-direction:column;align-items:center}
+  .timeline .dot span{width:10px;height:10px;background:var(--paper-muted);border-radius:50%;margin-top:7px}
+  .timeline .dot .line{flex:1;width:1px;background:var(--ink-4);margin-top:4px}
+  .timeline .body{padding:0 0 22px}
+  .timeline h5{font-family:var(--serif);font-size:22px;margin:0 0 6px;color:var(--paper);font-weight:400}
+  .timeline p{margin:0;font-size:13px;color:var(--ink-10)}
+  .pr-box{margin-top:14px;border:1px solid var(--ink-4);padding:12px 16px;font-family:var(--mono);font-size:12px;color:var(--ink-10);max-width:820px;display:flex;justify-content:space-between;align-items:center}
+  .pr-box .label{color:var(--paper)}
+  .stack-row{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:18px}
+  .stack-row .vendor{border:1px solid var(--ink-4);padding:14px}
+  .stack-row .vendor .name{font-family:var(--serif);font-size:22px;color:var(--paper);margin-bottom:4px}
+  .stack-row .vendor .role{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-8);margin-bottom:10px}
+  .stack-row .vendor p{margin:0;font-size:11.5px;color:var(--ink-10);line-height:1.5}
+  /* utility for stretching image fully on dedicated screenshot slides */
+  .full-image{flex:1;display:block;background:var(--ink-1);border:1px solid var(--ink-4);background-size:contain;background-repeat:no-repeat;background-position:center;margin-top:22px}
+  /* judging-criteria table */
+  .jc-table{width:100%;border-collapse:collapse;margin-top:18px;font-size:12.5px}
+  .jc-table th,.jc-table td{border:1px solid var(--ink-4);padding:10px 12px;vertical-align:top;text-align:left;color:var(--ink-11)}
+  .jc-table th{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-8);background:var(--ink-1);font-weight:400}
+  .jc-table td.crit{font-family:var(--serif);font-size:18px;color:var(--paper);font-style:italic;width:22%}
+  .jc-table td.weight{font-family:var(--mono);font-size:11px;color:var(--paper-muted);width:10%}
+  .jc-table td.target{color:var(--paper);font-weight:500}
+  .jc-table td.evidence{font-size:12px;color:var(--ink-10);width:34%}
+  /* speaker notes overlay */
+  .notes{position:fixed;left:0;right:0;bottom:0;max-height:42vh;background:rgba(12,12,14,.96);border-top:1px solid var(--paper-muted);padding:18px 88px 22px;z-index:60;display:none;overflow:auto;backdrop-filter:blur(6px)}
+  .notes.show{display:block}
+  .notes h6{margin:0 0 8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper-muted)}
+  .notes .ntitle{font-family:var(--serif);font-size:22px;color:var(--paper);margin:0 0 10px}
+  .notes p{margin:0 0 8px;font-size:13.5px;color:var(--ink-11);line-height:1.55;max-width:1100px}
+  .notes .pillars{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .notes .pillars .p{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper);border:1px solid var(--paper-muted);padding:3px 9px}
+  .notes-toggle{position:fixed;bottom:18px;left:24px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-8);z-index:55}
+  .notes-toggle kbd{font-family:var(--mono);background:var(--ink-2);border:1px solid var(--ink-4);padding:2px 6px;color:var(--ink-11);margin:0 2px}
+  .glow{box-shadow:inset 0 0 0 1px var(--paper-muted)}
+  .ribbon{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-0);background:var(--paper);padding:3px 10px;margin-bottom:14px}
+  /* print to PDF — each .slide on its own page, all visible */
+  @media print{
+    @page{size:1440px 900px;margin:0}
+    html,body{background:#0c0c0d;overflow:visible}
+    body{height:auto;width:auto}
+    .deck{height:auto;width:auto}
+    .slide{position:relative;width:1440px;height:900px;page-break-after:always;opacity:1;transform:none;pointer-events:auto;display:flex}
+    .nav{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ============================================================ 1 ============================================================ -->
+<section class="slide active" data-n="01">
+  <header class="masthead">
+    <span><span class="brand">T<span class="slash">/</span>HQ <span class="ed">TEAMHQ</span></span></span>
+    <span>Vol I · No 01</span>
+    <span>Nozomio Hackathon · 2026 · Track 4: Company Brain</span>
+  </header>
+  <h1 class="display" style="font-size:120px;margin-top:24px">TeamHQ</h1>
+  <p class="sub">The engineering org's <em>decision surface</em>. Every code change starts here, gets routed to the right roles, and ships only after quorum.</p>
+  <div class="grid g4" style="margin-top:auto;margin-bottom:36px;max-width:1100px">
+    <div class="stat"><div class="num">04</div><div class="lbl">Sponsors wired</div></div>
+    <div class="stat"><div class="num">12</div><div class="lbl">Card types</div></div>
+    <div class="stat"><div class="num">06</div><div class="lbl">Personas</div></div>
+    <div class="stat"><div class="num">04</div><div class="lbl">PRs shipped</div></div>
+  </div>
+  <div class="footer"><span>Built on Hyperspell · Nia · Tensorlake · InsForge</span><span>kitrakrev / kart-001 / Ash-ketchum-pikachu</span></div>
+</section>
+
+<!-- ============================================================ 2 — Audience hooks ============================================================ -->
+<section class="slide" data-n="02">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Open</span><span>raise your hand</span></header>
+  <span class="ribbon">opening hooks</span>
+  <h2 class="display">A few hands, please.</h2>
+  <p class="sub">Five questions. Keep your hand up if it's still you.</p>
+  <ol class="ask">
+    <li class="q"><span class="num">01</span><span class="t">How many of you are <em>developers</em>?</span></li>
+    <li class="q"><span class="num">02</span><span class="t">How many of you are <em>vibe coders</em> — Cursor, Claude Code, Devin in a hot loop?</span></li>
+    <li class="q"><span class="num">03</span><span class="t">How many of you work in a company with <em>more than two people</em>?</span></li>
+    <li class="q"><span class="num">04</span><span class="t">How many of you have seen a <em>single PR with 100+ files</em> from one teammate?</span></li>
+    <li class="q"><span class="num">05</span><span class="t">And how many of you trusted it the moment you opened it?</span></li>
+  </ol>
+  <div class="footer"><span>02 / Hooks</span><span>Most hands stay up. Last hand goes down.</span></div>
+</section>
+
+<!-- ============================================================ 3 — The problem PR ============================================================ -->
+<section class="slide" data-n="03">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>The Incident</span><span>something like this happened in my company</span></header>
+  <span class="ribbon">the problem</span>
+  <h2 class="display">399 commits. 691 files. One reviewer.</h2>
+  <p class="sub">A teammate let an agent loose on a migration. The PR opened. Nobody could read it. CI passed. So we merged it.</p>
+  <div class="grid g3" style="margin-top:6px">
+    <div class="stat"><div class="num">399</div><div class="lbl">Commits in one branch</div></div>
+    <div class="stat"><div class="num">691</div><div class="lbl">Files changed</div></div>
+    <div class="stat"><div class="num">1</div><div class="lbl">Human who actually read it</div></div>
+  </div>
+  <p class="pull">"Looks good to me."<br><span style="font-size:14px;font-style:normal;color:var(--ink-8);font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase">— a reviewer who did not read 691 files</span></p>
+  <div class="footer"><span>03 / Problem</span><span>Pattern: vibe-code → mass PR → rubber-stamp → prod regression</span></div>
+</section>
+
+<!-- ============================================================ 4 — Diagnosis ============================================================ -->
+<section class="slide" data-n="04">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Diagnosis</span><span>great power, great responsibility</span></header>
+  <span class="ribbon">why this keeps happening</span>
+  <h2 class="display">Vibe-coding from zero is easy.<br><em>Touching what already exists is the hard part.</em></h2>
+  <div class="grid g2" style="margin-top:24px;gap:36px">
+    <div class="body">
+      <p><strong>Greenfield with an agent</strong> → no priors, no constraints, no taste yet to violate. The agent looks brilliant.</p>
+      <p><strong>Refactor / migrate an existing codebase</strong> → the agent must respect a thousand decisions it never made: ADRs, retry conventions, deploy policy, schema sign-offs, jest coverage floors, the why-this-was-2k-lines-and-not-200.</p>
+      <p>When unit tests pass on a vibe-coded source, the agent learns that the <em>shape of the bypass</em> is the way home. Tests stop being a contract; they become a permission slip.</p>
+    </div>
+    <div class="body">
+      <p class="pull" style="font-size:30px;border-left-color:var(--paper-muted)">With great power (coding agents) comes great responsibility — to ship at <em>scale</em>, in a codebase someone else has to maintain on Monday.</p>
+      <p style="margin-top:18px"><span class="chip a">architect</span> <span class="chip b">backend</span> <span class="chip d">data science</span> <span class="chip u">ui</span> <span class="chip o">devops</span></p>
+      <p>Major revamps are a <em>team sport</em>. The fix isn't a smarter agent. It's an org structure the agent has to ask permission from.</p>
+    </div>
+  </div>
+  <div class="footer"><span>04 / Diagnosis</span><span>"agents write bypasses, especially when the source is vibecoded"</span></div>
+</section>
+
+<!-- ============================================================ 5 — Solution intro ============================================================ -->
+<section class="slide" data-n="05">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Introducing</span><span>the org's decision surface</span></header>
+  <span class="ribbon">solution</span>
+  <h2 class="display">Make every code change <em>start as a card</em>.</h2>
+  <p class="sub">Routed to the right role. Grounded in the right team's brain. Verified in sandbox. Shipped only after quorum.</p>
+  <div class="img-frame" style="margin-top:0"><img src="img/03-feed-hero.png" alt="TeamHQ feed"></div>
+  <div class="footer"><span>05 / Solution</span><span>Volume I, Issue 005 · Acme Eng · decision feed</span></div>
+</section>
+
+<!-- ============================================================ 6 — How it works (timeline) ============================================================ -->
+<section class="slide" data-n="06">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>How it works</span><span>the loop</span></header>
+  <h3 class="display">Trigger → Acceptance → Questions → Plans → Sandbox → Quorum → PR.</h3>
+  <div class="timeline">
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>1 · Trigger</h5><p>SDK upgrade, feature proposal, refactor, or migration. Source can be a webhook, cron, or a human in the UI.</p></div></div>
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>2 · Acceptance Criteria</h5><p>For new features the agent drafts <em>definition of done</em> first. Each criterion gets a team owner + a verifiable test command.</p></div></div>
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>3 · Per-role Questions</h5><p>Grounded in each lead's Hyperspell history (Slack, Notion, GitHub). Only the addressed user can answer; everyone else sees the citations.</p></div></div>
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>4 · Per-team Plans</h5><p>Synthesised against that team's brain (gpt-oss-120b via Hyperspell). Cited by ADR + Slack thread.</p></div></div>
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>5 · Sandbox</h5><p>Tensorlake firecracker microVM. Real network, real <code>git</code> + <code>gh</code>, ephemeral.</p></div></div>
+    <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>6 · Quorum gate</h5><p>Default ON. PR cannot ship until every team lead approves their plan card.</p></div></div>
+    <div class="step"><div class="dot"><span></span></div><div class="body"><h5>7 · Real PR</h5><p>Branch pushed via OAuth-scoped <code>gh</code>. Merge, comment, audit trail logged back to InsForge.</p></div></div>
+  </div>
+  <div class="footer"><span>06 / Loop</span><span>each step emits a card · UI streams them via /api/runs/:id/cards</span></div>
+</section>
+
+<!-- ============================================================ 7 — Cast ============================================================ -->
+<section class="slide" data-n="07">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Acting As</span><span>identity controls who can decide what</span></header>
+  <h2 class="display">Six personas. <em>Real role-gating.</em></h2>
+  <p class="sub">View the same feed as anyone. Only the right viewer can approve the right card. Anyone can comment.</p>
+  <div class="arch">
+    <div class="col"><h4>Sarah Chen</h4><div class="role"><span class="chip b">backend lead</span></div><p>Owns the OpenAI client conventions. Approves the BACKEND plan.</p></div>
+    <div class="col"><h4>Iris Patel</h4><div class="role"><span class="chip d">data science lead</span></div><p>Owns embedding pipeline standards (ADR-15). Approves the DS plan.</p></div>
+    <div class="col"><h4>Alice Rivera</h4><div class="role"><span class="chip u">ui lead</span></div><p>Owns the auto-generated TS api-client + jest 80% floor.</p></div>
+    <div class="col"><h4>Grace Liu</h4><div class="role"><span class="chip o">devops lead</span></div><p>Owns deploy policy, image-size budget, p99 SLO.</p></div>
+    <div class="col"><h4>Dan Park</h4><div class="role"><span class="chip a">architect</span></div><p>Cross-team override authority. Breaks ties. Logs to audit.</p></div>
+    <div class="col"><h4>Frank Lee</h4><div class="role"><span class="chip">pm</span></div><p>Files feature proposals. Triggers the AC flow.</p></div>
+  </div>
+  <div class="footer"><span>07 / Cast</span><span>view-as toggle = identity switcher, not a filter</span></div>
+</section>
+
+<!-- ============================================================ 8 — Acceptance Criteria ============================================================ -->
+<section class="slide" data-n="08">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 02</span><span>acceptance criteria · 9 items</span></header>
+  <span class="ribbon">card type · acceptance_criteria</span>
+  <h3 class="display"><em>"Add streaming completions to chat UI for paying customers"</em></h3>
+  <p class="body">For a feature proposal, the agent drafts the <em>definition of done</em> before any code is planned. Nine checkable items, each with a team owner and a verifiable shell command.</p>
+  <div class="img-frame" style="margin-top:14px"><img src="img/04-acceptance-criteria.png" alt="acceptance criteria card"></div>
+  <div class="footer"><span>08 / AC</span><span>generated by Claude Sonnet 4.5 · structured JSON · status = pending → passed</span></div>
+</section>
+
+<!-- ============================================================ 9 — Question card ============================================================ -->
+<section class="slide" data-n="09">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 03</span><span>question for sarah chen (backend)</span></header>
+  <span class="ribbon">card type · question</span>
+  <h3 class="display">Per-role questions, <em>grounded in your own history.</em></h3>
+  <p class="body">"Should we use the existing OpenAI client retry wrapper from #backend Slack — or does streaming need different retry logic?" The agent cites <em>your</em> ADR-12 + the exact Slack thread.</p>
+  <div class="img-frame" style="margin-top:14px"><img src="img/05-question-card.png" alt="question card"></div>
+  <div class="footer"><span>09 / Question</span><span>only the addressed user can answer · everyone else: read-only with citations</span></div>
+</section>
+
+<!-- ============================================================ 10 — Team plan ============================================================ -->
+<section class="slide" data-n="10">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 07</span><span>backend team plan · awaiting sarah</span></header>
+  <span class="ribbon">card type · team_plan</span>
+  <h3 class="display">A plan, <em>cited like a paper.</em></h3>
+  <p class="body">Each team's plan is synthesised against <em>that team's</em> Hyperspell collection — not a global prompt. The footnote sidebar pins every claim to an ADR or Slack thread. Approve, reject, or comment — gated by viewer role.</p>
+  <div class="img-frame" style="margin-top:14px"><img src="img/06-team-plan.png" alt="team plan card"></div>
+  <div class="footer"><span>10 / Plan</span><span>gpt-oss-120b open-weights · per-team grounding · footnoted citations</span></div>
+</section>
+
+<!-- ============================================================ 11 — Sandbox + PR ============================================================ -->
+<section class="slide" data-n="11">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 11–12</span><span>tensorlake sandbox · pr opened</span></header>
+  <span class="ribbon">card type · sandbox + pr_opened</span>
+  <h3 class="display">After quorum, <em>real code lands in real repos.</em></h3>
+  <p class="body">Tensorlake spins a firecracker microVM. <code>git clone</code>, branch, push. <code>gh pr create</code> with the multi-team plan in the body. PR is real, draft, attributable, mergeable.</p>
+  <div class="img-frame" style="margin-top:14px"><img src="img/07-sandbox-pr.png" alt="sandbox + PR opened"></div>
+  <div class="pr-box"><span class="label">VIEW PR</span><span>github.com/kitrakrev/teamhq-hero/pull/4</span></div>
+  <div class="footer"><span>11 / PR</span><span>real branch · real commit · real diff · real reviewers</span></div>
+</section>
+
+<!-- ============================================================ 12 — Real PR proof ============================================================ -->
+<section class="slide" data-n="12">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Evidence</span><span>github.com/kitrakrev/teamhq-hero/pull/4</span></header>
+  <span class="ribbon">proof · this is not a mock</span>
+  <h2 class="display">Pull request <em>#4</em>, opened by the agent.</h2>
+  <p class="sub">Body composed from per-team plans + citations. Branch <code>teamhq/run-1f408ef9</code>. Status: draft, awaiting team-lead review.</p>
+  <div class="img-frame img-flush" style="margin-top:0"><img src="img/12-real-pr.png" alt="real github PR"></div>
+  <div class="footer"><span>12 / Proof</span><span>1f408ef9 · run completed · 12 cards emitted · sandbox python 3.12.3</span></div>
+</section>
+
+<!-- ============================================================ 13 — Sponsor stack ============================================================ -->
+<section class="slide" data-n="13">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>The Stack</span><span>built on hyperspell · nia · tensorlake · insforge</span></header>
+  <h2 class="display">Each sponsor does <em>exactly</em> what they're best at.</h2>
+  <div class="stack-row">
+    <div class="vendor"><div class="name">Hyperspell</div><div class="role">Team brain</div><p>Per-team Slack + Notion + GitHub + Linear collections. <code>memories.search(answer=true)</code>. <code>gpt-oss-120b</code> open-weights model.</p></div>
+    <div class="vendor"><div class="name">Nia</div><div class="role">World context</div><p>Indexes upstream changelogs + public repos. The agent reads <em>outward</em> — competitor, dependency, ecosystem.</p></div>
+    <div class="vendor"><div class="name">Tensorlake</div><div class="role">Sandbox + agent runtime</div><p>Firecracker microVMs + Applications platform. Real <code>git</code>, real <code>gh</code>, real network. Function-as-a-service for the agent loop itself.</p></div>
+    <div class="vendor"><div class="name">InsForge</div><div class="role">App backend</div><p>Postgres + auth + AI gateway (Claude, GPT, Gemini, DeepSeek, Grok, MiniMax). One row per card. PostgREST conventions.</p></div>
+    <div class="vendor"><div class="name">Vercel</div><div class="role">Web</div><p>Next.js 16 App Router + Tailwind 4. Multi-tenant, session-scoped. PKCE OAuth flows for both read + write GitHub scopes.</p></div>
+  </div>
+  <div class="footer"><span>13 / Stack</span><span>One brain per vendor. Composed, not entangled.</span></div>
+</section>
+
+<!-- ============================================================ 14 — Coding agent of choice ============================================================ -->
+<section class="slide" data-n="14">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Pluggable</span><span>chat continuity via mcp</span></header>
+  <h2 class="display">Bring <em>your</em> coding agent.</h2>
+  <p class="sub">Claude Code · Cursor · Codex · Devin. The decision history lives in TeamHQ. Any MCP-compatible agent picks up where the last one left off.</p>
+  <div class="grid g2" style="margin-top:18px;gap:36px">
+    <div class="body">
+      <p>The chat is stored on <em>our</em> side, not the agent's. Switch agents mid-stream and decisions stay coherent.</p>
+      <p>We ship a <strong>TeamHQ MCP server</strong> with seven tools: <code>list_runs</code>, <code>get_run</code>, <code>trigger_scenario</code>, <code>approve_card</code>, <code>reject_card</code>, <code>comment_card</code>, <code>answer_question</code>.</p>
+      <p>Drop one line into <code>~/.claude.json</code> and Claude Code can drive the whole org.</p>
+    </div>
+    <div class="body" style="border:1px solid var(--ink-4);padding:22px;background:var(--ink-1)">
+      <div class="smallcaps" style="margin-bottom:10px;color:var(--paper-muted)">install in claude code</div>
+      <pre style="margin:0;font-family:var(--mono);font-size:12.5px;color:var(--ink-11);white-space:pre-wrap;line-height:1.65">claude mcp add teamhq \
+  --env TEAMHQ_BASE=https://web-nine-lemon-57.vercel.app \
+  --env TEAMHQ_PERSONA=sarah \
+  -- python /path/to/teamhq_mcp.py</pre>
+    </div>
+  </div>
+  <div class="footer"><span>14 / Pluggable</span><span>agent-agnostic · history portable · MCP over stdio</span></div>
+</section>
+
+<!-- ============================================================ 15 — Quorum gate / kill switch ============================================================ -->
+<section class="slide" data-n="15">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Quorum</span><span>track 4 pillar · hyperspell load-bearing</span></header>
+  <h2 class="display">If <em>Hyperspell</em> goes dark,<br>the demo <em>visibly</em> degrades.</h2>
+  <p class="sub">No team brain → no grounded questions → no cited plans. The agent <em>can't</em> bypass; the org <em>can't</em> approve. Track 4's load-bearing test, baked in.</p>
+  <div class="grid g3" style="margin-top:18px">
+    <div class="stat"><div class="num">85</div><div class="lbl">Team artifacts indexed</div></div>
+    <div class="stat"><div class="num">19</div><div class="lbl">Brain citations on this run</div></div>
+    <div class="stat"><div class="num">04</div><div class="lbl">Required approvals before ship</div></div>
+  </div>
+  <p class="pull" style="margin-top:30px">Quorum is not a checkbox. It's the product.</p>
+  <div class="footer"><span>15 / Quorum</span><span>TEAMHQ_BLOCK_UNTIL_APPROVED=1 default · timeout = halt + audit card</span></div>
+</section>
+
+<!-- ============================================================ 16 — Onboarding ============================================================ -->
+<section class="slide" data-n="16">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Onboarding</span><span>three steps · zero mocks</span></header>
+  <h2 class="display">From zero to first PR <em>in three screens.</em></h2>
+  <p class="sub">Connect GitHub via real PKCE OAuth. Upgrade to write scopes. Pick repos. Invite the team. The agent inherits the tenant.</p>
+  <div class="img-frame" style="margin-top:14px"><img src="img/08-onboard.png" alt="onboarding wizard"></div>
+  <div class="footer"><span>16 / Onboard</span><span>github_write OAuth → oauth_tokens row → agent uses GH_TOKEN at PR time</span></div>
+</section>
+
+<!-- ============================================================ 17 — Multi-tenant pages ============================================================ -->
+<section class="slide" data-n="17">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Org Pages</span><span>projects · connectors · people</span></header>
+  <h3 class="display">Real multi-tenant. <em>Per-session org_id.</em></h3>
+  <p class="body" style="max-width:1100px">Every read scoped to the viewer's org. No env-driven leak. New signups auto-provision a tenant + a default backend team + a starter project.</p>
+  <div class="grid g3" style="margin-top:14px;gap:18px;flex:1">
+    <div class="img-frame" style="margin:0;height:100%"><img src="img/09-projects.png" alt="projects"></div>
+    <div class="img-frame" style="margin:0;height:100%"><img src="img/10-connectors.png" alt="connectors"></div>
+    <div class="img-frame" style="margin:0;height:100%"><img src="img/11-people.png" alt="people"></div>
+  </div>
+  <div class="footer"><span>17 / Tenant</span><span>org_members · org_repos · projects · oauth_tokens · all per-org</span></div>
+</section>
+
+<!-- ============================================================ 18 — Architecture ============================================================ -->
+<section class="slide" data-n="18">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Architecture</span><span>three runtimes · one decision feed</span></header>
+  <h2 class="display">Three runtimes, <em>one decision feed</em>.</h2>
+  <div class="arch" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="col"><h4>Vercel · Next.js</h4><div class="role">user-facing</div><p>App Router · Tailwind 4 · server actions for OAuth + scenario triggers · streams cards to the feed every 2 s.</p></div>
+    <div class="col"><h4>Tensorlake · Agent</h4><div class="role">compute</div><p>Custom <code>Image()</code> w/ git + gh + python · @application + @function · firecracker sandbox at runtime · secrets via <code>tl secrets</code>.</p></div>
+    <div class="col"><h4>InsForge · Backend</h4><div class="role">data plane</div><p>Postgres tables: orgs, org_members, teams, projects, runs, cards, oauth_tokens, audit_log · AI gateway for ranking + structured JSON.</p></div>
+  </div>
+  <div class="grid g2" style="margin-top:24px">
+    <div class="body"><p><strong>Why split?</strong> Each runtime stays simple: web is stateless, agent is ephemeral, DB is the only durable surface. Failure of any one degrades cleanly.</p></div>
+    <div class="body"><p><strong>Why MCP on top?</strong> The agent's chat history is durable in InsForge — any agent client can resume. Devin today, Claude Code tomorrow, Codex next week.</p></div>
+  </div>
+  <div class="footer"><span>18 / Arch</span><span>web → tensorlake → insforge · hyperspell + nia + github inline</span></div>
+</section>
+
+<!-- ============================================================ 19 — What we shipped ============================================================ -->
+<section class="slide" data-n="19">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Receipts</span><span>shipped today</span></header>
+  <h2 class="display">Shipped in <em>one day.</em></h2>
+  <ul class="checklist">
+    <li><span class="num">1</span><div><div class="t">Full agent loop · trigger → AC → questions → plans → sandbox → quorum → real PR.</div><div class="meta">agent/loop.py · 4 PRs landed on kitrakrev/teamhq-hero</div></div></li>
+    <li><span class="num">2</span><div><div class="t">Multi-tenant web app · session-scoped org_id, real signup, GitHub OAuth (read + write), Hyperspell connectors for Slack/Notion/Linear/Gmail/Drive/Teams.</div><div class="meta">web/src · session.ts · onboard wizard · oauth/* routes</div></div></li>
+    <li><span class="num">3</span><div><div class="t">Tensorlake-deployed agent · custom image w/ <code>git</code>+<code>gh</code> · secrets vault · firecracker sandbox · AI gateway via InsForge.</div><div class="meta">tl_app/agent_app.py · run_teamhq_scenario</div></div></li>
+    <li><span class="num">4</span><div><div class="t">TeamHQ MCP server · 7 tools · agent-agnostic chat continuity.</div><div class="meta">mcp/teamhq_mcp.py · stdio JSON-RPC · claude mcp add teamhq</div></div></li>
+    <li><span class="num">5</span><div><div class="t">Editorial UI · Instrument Serif + JetBrains Mono · timeline rail · footnote citations · view-as identity switcher · per-team accent system.</div><div class="meta">web/src/components/Card.tsx · Feed.tsx · globals.css</div></div></li>
+    <li><span class="num">6</span><div><div class="t">35+ tests across personas, codeowners, loop, InsForge, Hyperspell, Tensorlake, auth, projects, approvals.</div><div class="meta">tests/ · pytest -v · all green</div></div></li>
+  </ul>
+  <div class="footer"><span>19 / Receipts</span><span>one repo, one demo, one day · git log doesn't lie</span></div>
+</section>
+
+<!-- ============================================================ 20 — Judging criteria ============================================================ -->
+<section class="slide" data-n="20">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Judging Criteria</span><span>track 4 · how we map</span></header>
+  <span class="ribbon">how this scores</span>
+  <h3 class="display">Each criterion lands somewhere <em>specific</em>.</h3>
+  <table class="jc-table">
+    <thead><tr><th>Criterion</th><th>Weight</th><th>Where it lands</th><th>Evidence</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="crit">Cross-Source Synthesis</td>
+        <td class="weight">30%</td>
+        <td>Per-team plans fuse Hyperspell (Slack + Notion + GitHub + Linear) + Nia (world context) + the repo state. Each team plan synthesises its own brain — not a global prompt.</td>
+        <td class="evidence">Slide 10 · 19 cited brain artifacts on the demo run · gpt-oss-120b answers footnoted by ADR + thread URL</td>
+        <td class="target">5 · brain is the product</td>
+      </tr>
+      <tr>
+        <td class="crit">Real Work, Not Just Answers</td>
+        <td class="weight">25%</td>
+        <td>Agent opens real PRs on real GitHub repos via OAuth-scoped <code>gh</code>. Branches push, draft PRs land, audit log writes back to InsForge.</td>
+        <td class="evidence">Slide 12 · github.com/kitrakrev/teamhq-hero/pull/4 · 4 PRs landed · multi-team plan in PR body</td>
+        <td class="target">5 · replaces hours of human work</td>
+      </tr>
+      <tr>
+        <td class="crit">Hyperspell Integration Depth</td>
+        <td class="weight">25%</td>
+        <td>Hyperspell answers the per-role questions, grounds the per-team plans, and stores the team-brain itself. Disconnect Hyperspell → no questions, no plans, no quorum, no PR. Demo visibly degrades.</td>
+        <td class="evidence">Slide 15 · TEAMHQ_BLOCK_UNTIL_APPROVED=1 default · agent/hyperspell.py · per-team scoping · open-weights gpt-oss-120b</td>
+        <td class="target">5 · removing it breaks the demo entirely</td>
+      </tr>
+      <tr>
+        <td class="crit">Demo &amp; Presentation</td>
+        <td class="weight">10%</td>
+        <td>Live demo + this deck + working MCP. Editorial UI carries the narrative without slide-handholding. Story (PR #1260) makes the case unforgettably.</td>
+        <td class="evidence">Slides 02–04 (audience hooks + diagnosis) · 05–11 (live UI walkthrough) · 14 (Claude Code MCP)</td>
+        <td class="target">5 · story + demo make the case</td>
+      </tr>
+      <tr>
+        <td class="crit">Judge's Personal Rating</td>
+        <td class="weight">10%</td>
+        <td>If you've ever rubber-stamped a 691-file PR, this is the surface you wish existed.</td>
+        <td class="evidence">Real personas · real OAuth · real Slack/Notion seeded · real PRs · pluggable to Claude Code today</td>
+        <td class="target">5 · I want to see it succeed</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="footer"><span>20 / Judging</span><span>cross-source · real work · hyperspell load-bearing · demo · personal</span></div>
+</section>
+
+<!-- ============================================================ 21 — The ask ============================================================ -->
+<section class="slide" data-n="21">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Closing</span><span>thank you</span></header>
+  <h1 class="display" style="font-size:96px"><em>Coding agents</em> are powerful.<br>Engineering orgs are <em>not</em> single-player.</h1>
+  <p class="sub" style="font-size:28px;max-width:980px">TeamHQ is the surface where the org converges to ship — grounded in each team's brain, gated by the right roles, attributable end-to-end.</p>
+  <div class="grid g4" style="margin-top:auto;margin-bottom:36px">
+    <div class="stat"><div class="num">Demo</div><div class="lbl">web-nine-lemon-57.vercel.app</div></div>
+    <div class="stat"><div class="num">Code</div><div class="lbl">github.com/kitrakrev/teamhq-hero</div></div>
+    <div class="stat"><div class="num">MCP</div><div class="lbl">claude mcp add teamhq …</div></div>
+    <div class="stat"><div class="num">Track 4</div><div class="lbl">Hyperspell · load-bearing</div></div>
+  </div>
+  <div class="footer"><span>21 / Fin</span><span>karthik · sarabesh2001@gmail.com · @kitrakrev</span></div>
+</section>
+
+</div>
+
+<aside class="notes" id="notes" role="region" aria-label="Speaker notes"></aside>
+<div class="notes-toggle">press <kbd>n</kbd> for speaker notes · <kbd>p</kbd> to print</div>
+
+<div class="nav">
+  <button id="prev" aria-label="previous">◀ prev</button>
+  <span class="counter" id="counter">01 / 20</span>
+  <button id="next" aria-label="next">next ▶</button>
+  <button id="print" aria-label="print">⤓ pdf</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const counter=document.getElementById('counter');
+  const notesEl=document.getElementById('notes');
+
+  // Speaker notes — keyed by slide index (0-based). Each note has a title,
+  // a few short bullets I should hit out loud, and the judging-criteria
+  // pillars this slide moves the needle on.
+  const NOTES = [
+    {t:"Cover", b:[
+      "Pause for one beat. Let them read the tagline.",
+      "TeamHQ. Engineering org's decision surface. Not another agent.",
+      "Built in one day on Hyperspell, Nia, Tensorlake, InsForge."
+    ], p:["demo"]},
+    {t:"Audience hooks", b:[
+      "Read each question slow. Wait for hands.",
+      "By Q4 most hands are still up. By Q5 hands drop.",
+      "That dropped hand is the gap TeamHQ closes."
+    ], p:["demo","personal"]},
+    {t:"The Incident — PR #1260", b:[
+      "Tell it as a real story: 'something like this happened in my company'.",
+      "399 commits, 691 files, one reviewer. CI green. Merged.",
+      "Land the line: 'Looks good to me — by a reviewer who did not read 691 files.'"
+    ], p:["personal"]},
+    {t:"Diagnosis — agents write bypasses", b:[
+      "Vibe-coding from zero looks brilliant — no priors to violate.",
+      "Refactoring an existing codebase is the hard part.",
+      "Tests stop being a contract; they become a permission slip.",
+      "Solution isn't a smarter agent — it's an org structure the agent must ask permission from."
+    ], p:["demo","personal"]},
+    {t:"Solution — every change is a card", b:[
+      "Switch to live UI here if it works; otherwise the embedded screenshot is the same view.",
+      "Point at the masthead, the run picker, the view-as toggle.",
+      "Editorial layout = engineering tool, not consumer SaaS."
+    ], p:["demo","real-work"]},
+    {t:"How it works — the loop", b:[
+      "Walk down the timeline. Trigger → AC → Questions → Plans → Sandbox → Quorum → PR.",
+      "Quorum gate is default ON. Without approvals, no PR.",
+      "Each step emits a card; UI streams them every 2 s."
+    ], p:["real-work","cross-source"]},
+    {t:"Cast — six personas", p:["demo"], b:[
+      "Sarah backend, Iris DS, Alice UI, Grace DevOps, Dan architect, Frank PM.",
+      "Click view-as. Same feed, different action surface.",
+      "Identity controls who can decide what — not a filter."
+    ]},
+    {t:"Acceptance criteria card", p:["cross-source","real-work"], b:[
+      "When PMs file a feature, agent drafts definition-of-done first.",
+      "9 items here; each owned by a team; each verifiable via a shell command.",
+      "Generated by Claude Sonnet 4.5 via InsForge AI gateway."
+    ]},
+    {t:"Question card — grounded in your history", p:["cross-source","hyperspell"], b:[
+      "Ask Sarah a real question, citing her ADR-12 + her #backend Slack thread.",
+      "Iris/Alice/Grace see read-only — only Sarah can answer.",
+      "This is Hyperspell load-bearing: no team brain, no question."
+    ]},
+    {t:"Team plan — cited like a paper", p:["cross-source","hyperspell"], b:[
+      "Each plan synthesises against THAT team's Hyperspell collection.",
+      "Footnote sidebar pins every claim to ADR or Slack.",
+      "Approve / Reject / Comment is gated by viewer role."
+    ]},
+    {t:"Sandbox + PR opened", p:["real-work","hyperspell"], b:[
+      "Tensorlake firecracker microVM. Real git, real gh.",
+      "On approval the agent pushes a branch and opens a draft PR.",
+      "PR body includes per-team plans + citations — code review pre-loaded."
+    ]},
+    {t:"Real PR — not a mock", p:["real-work"], b:[
+      "Open the GitHub tab. Show pull/4. Branch name teamhq/run-1f408ef9.",
+      "Click the 4 PRs in /pulls — every one was opened by the agent today.",
+      "If asked: yes, the agent can be Claude Code, Codex, or Devin."
+    ]},
+    {t:"Sponsor stack", p:["cross-source","hyperspell","real-work"], b:[
+      "Hyperspell = team brain. Nia = world context. Tensorlake = sandbox + agent runtime. InsForge = data plane + AI gateway. Vercel = web.",
+      "One brain per vendor. Composed, not entangled.",
+      "Each does exactly what it's best at — that's why nothing leaks."
+    ]},
+    {t:"Pluggable — bring your agent", p:["real-work","demo"], b:[
+      "MCP server — 7 tools — Claude Code reads runs and approves cards.",
+      "Chat history is durable in InsForge — switch agents and decisions stay coherent.",
+      "Demo this if time allows: claude code → /mcp → list_runs → approve."
+    ]},
+    {t:"Quorum gate — Hyperspell load-bearing", p:["hyperspell"], b:[
+      "Disconnect Hyperspell live → questions vanish, plans go citation-less.",
+      "TEAMHQ_BLOCK_UNTIL_APPROVED=1 by default — no quorum, no PR.",
+      "Quorum is not a checkbox; it's the product."
+    ]},
+    {t:"Onboarding — three steps", p:["demo","real-work"], b:[
+      "Real GitHub PKCE OAuth — read scopes via InsForge shared app.",
+      "Optional upgrade to write scopes via our own GitHub OAuth app.",
+      "Tenant auto-provisioned on first signup — backend team + starter project."
+    ]},
+    {t:"Multi-tenant pages", p:["real-work","demo"], b:[
+      "Projects, Connectors, People — every read is org-scoped.",
+      "No env-driven org_id. Session resolves it per-request.",
+      "Connectors page surfaces Slack/Notion/GitHub/Linear/Gmail/Drive/Teams."
+    ]},
+    {t:"Architecture", p:["real-work","cross-source"], b:[
+      "Three runtimes: Vercel (web) → Tensorlake (agent) → InsForge (data).",
+      "Each fails cleanly on its own.",
+      "Hyperspell + Nia + GitHub are sources, not runtime owners."
+    ]},
+    {t:"Receipts — what shipped today", p:["real-work","demo"], b:[
+      "Run all six bullets confidently — git log doesn't lie.",
+      "If pressed: 35 tests pass, 4 PRs landed, 12 cards on the streaming feature run.",
+      "Tensorlake-deployed agent is live; gh + git inside the container."
+    ]},
+    {t:"Judging criteria mapping", p:["cross-source","real-work","hyperspell","demo","personal"], b:[
+      "Walk the table left-to-right. Don't read every cell — point at the target column.",
+      "Cross-source 30: brain IS the product.",
+      "Real work 25: 4 PRs.",
+      "Hyperspell 25: removing it breaks the demo.",
+      "Demo + Personal: this slide deck IS the demo, mid-flight."
+    ]},
+    {t:"Closing", p:["demo","personal"], b:[
+      "Land the closing line: 'Coding agents are powerful. Engineering orgs are not single-player.'",
+      "Demo URL, repo, MCP install one-liner all on screen.",
+      "Thank-you. Pause. Take questions."
+    ]},
+  ];
+
+  function renderNote(n){
+    const note = NOTES[n] || {t:"",b:[],p:[]};
+    notesEl.innerHTML =
+      `<h6>Speaker notes · slide ${String(n+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}</h6>`+
+      `<div class="ntitle">${note.t}</div>`+
+      note.b.map(x=>`<p>· ${x}</p>`).join('')+
+      `<div class="pillars">${note.p.map(p=>`<span class="p">pillar · ${p}</span>`).join('')}</div>`;
+  }
+
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    slides[i].classList.remove('active');
+    slides[n].classList.add('active');
+    i=n;
+    counter.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+    renderNote(i);
+    history.replaceState(null,'','#'+(i+1));
+  }
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown') show(i+1);
+    else if(e.key==='ArrowLeft'||e.key==='PageUp') show(i-1);
+    else if(e.key==='Home') show(0);
+    else if(e.key==='End') show(slides.length-1);
+    else if(e.key==='p'||e.key==='P') window.print();
+    else if(e.key==='n'||e.key==='N') notesEl.classList.toggle('show');
+    else if(e.key===' ') { e.preventDefault(); show(i+1); }
+  });
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('print').onclick=()=>window.print();
+  // Initial render so notes are populated even before any nav.
+  renderNote(0);
+  // Hash deep-link
+  if(location.hash){
+    const n=parseInt(location.hash.slice(1),10);
+    if(!Number.isNaN(n)) show(n-1);
+  }
+  // Click anywhere advances (except buttons + the notes overlay itself)
+  document.addEventListener('click',e=>{
+    if(e.target.closest('.nav')||e.target.closest('a')||e.target.closest('.notes')||e.target.closest('.notes-toggle')) return;
+    const x=e.clientX,w=window.innerWidth;
+    show(x<w*0.3? i-1 : i+1);
+  });
+</script>
+</body>
+</html>

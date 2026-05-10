@@ -15,6 +15,7 @@ teams that own them via CODEOWNERS, then synthesize one plan per team.
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -227,7 +228,9 @@ def run(trigger: TriggerSpec) -> dict[str, Any]:
     # Quorum gate — only proceed to sandbox + PR after all team_plan cards
     # are approved (or, in non-blocking mode, just record the gate state).
     import os
-    block_until_approved = os.environ.get("TEAMHQ_BLOCK_UNTIL_APPROVED", "0") == "1"
+    # Default ON — quorum is the product. Set TEAMHQ_BLOCK_UNTIL_APPROVED=0
+    # to bypass for canned demo runs that ship a PR without human gating.
+    block_until_approved = os.environ.get("TEAMHQ_BLOCK_UNTIL_APPROVED", "1") == "1"
     if block_until_approved:
         _wait_for_quorum(run_id=run_id, expected_teams=list(teams.keys()), timeout_s=900)
 
@@ -310,6 +313,34 @@ def _run_sandbox(*, run_id: str, trigger: TriggerSpec, org_id: str) -> dict[str,
     return info
 
 
+def _gh_auth_env(org_id: str) -> dict[str, str]:
+    """Return env-var overrides containing GH_TOKEN if a write-scope OAuth
+    token is available in InsForge for any user in this org. Falls back to
+    an empty dict so the existing `gh auth` chain handles auth.
+    """
+    try:
+        # Pull oauth_tokens scoped to this org's members; pick newest write token.
+        # InsForge list_rows can't natively filter on a join — pull the org's
+        # users and intersect client-side. Cheap for demo scale.
+        from .insforge import _req as ifg_req
+        members = ifg_req("GET", f"/api/database/records/org_members?org_id=eq.{org_id}") or []
+        user_ids = [m.get("user_id") for m in members if m.get("user_id")]
+        if not user_ids:
+            return {}
+        in_clause = ",".join(user_ids)
+        rows = ifg_req(
+            "GET",
+            f"/api/database/records/oauth_tokens?provider=eq.github_write&user_id=in.({in_clause})&order=created_at.desc",
+        ) or []
+        tok = next((r for r in rows if r.get("access_token")), None)
+        if not tok:
+            return {}
+        return {"GH_TOKEN": tok["access_token"], "GITHUB_TOKEN": tok["access_token"]}
+    except Exception as e:
+        print(f"[loop] gh_auth_env lookup failed: {e}")
+        return {}
+
+
 def _open_pr(
     *, run_id: str, trigger: TriggerSpec, team_plans: dict[str, dict[str, Any]], org_id: str
 ) -> str | None:
@@ -353,6 +384,12 @@ def _open_pr(
 
     pr_title = f"TeamHQ: {trigger.trigger_source[:60]}"
 
+    # If a per-user `github_write` OAuth token is on file in InsForge for the
+    # org's owner, prefer that for `gh` auth — that's how production users
+    # ship without giving the agent a server-side PAT. Falls back to whatever
+    # the env / `gh auth` already has.
+    gh_env = _gh_auth_env(org_id)
+
     try:
         with tempfile.TemporaryDirectory() as tmp:
             wd = Path(tmp)
@@ -378,7 +415,16 @@ def _open_pr(
                 check=True,
                 capture_output=True,
             )
-            subprocess.run(["git", "-C", str(repo_dir), "push", "-u", "origin", branch], check=True, capture_output=True)
+            push_env = dict(os.environ)
+            if gh_env.get("GH_TOKEN"):
+                # Use HTTPS push w/ token in URL so we don't depend on a
+                # cached `gh auth` setup (works in fresh containers).
+                token_url = f"https://x-access-token:{gh_env['GH_TOKEN']}@github.com/{repo}.git"
+                subprocess.run(["git", "-C", str(repo_dir), "remote", "set-url", "origin", token_url], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(repo_dir), "push", "-u", "origin", branch],
+                check=True, capture_output=True, env=push_env,
+            )
             res = subprocess.run(
                 [
                     "gh", "pr", "create",
@@ -392,6 +438,7 @@ def _open_pr(
                 check=True,
                 capture_output=True,
                 text=True,
+                env={**os.environ, **gh_env},
             )
             url = res.stdout.strip().splitlines()[-1]
             emit(
