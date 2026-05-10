@@ -69,6 +69,7 @@ const TYPE_CONFIG: Record<string, { glyph: GlyphKey; label: string }> = {
   audit:                { glyph: 'Audit',    label: 'Audit' },
   acceptance_criteria:  { glyph: 'Check',    label: 'Acceptance Criteria' },
   user_message:         { glyph: 'Q',        label: 'Message' },
+  agent_reply:          { glyph: 'Plan',     label: 'Agent Reply' },
 };
 
 type Props = {
@@ -171,6 +172,26 @@ export function Card({ card, viewer, index = 0 }: Props) {
             answeredAt={body.answered_at}
             viewer={viewer}
           />
+        )}
+
+        {/* Agent reply card — chat bubble w/ optional role tag */}
+        {card.card_type === 'agent_reply' && body.text && (
+          <div className="mt-2 hairline px-4 py-3 max-w-2xl"
+               style={{ background: 'color-mix(in srgb, var(--paper) 8%, transparent)', borderColor: 'var(--paper)' }}>
+            <div className="smallcaps text-[var(--paper)] mb-1">Agent</div>
+            <p className="text-[14px] text-[var(--ink-12)] leading-snug whitespace-pre-wrap">{body.text}</p>
+            {body.rationale && (
+              <p className="text-[11.5px] text-[var(--ink-9)] mt-2">
+                <span className="smallcaps text-[var(--ink-7)] mr-1">why</span>
+                {body.rationale}
+              </p>
+            )}
+            {body.to_user?.email && (
+              <div className="mt-2 smallcaps text-[var(--ink-7)]">
+                tagged · <span style={{ color: 'var(--paper)' }}>{body.to_user.email}</span>
+              </div>
+            )}
+          </div>
         )}
 
         {/* User message card — chat-style bubble */}
