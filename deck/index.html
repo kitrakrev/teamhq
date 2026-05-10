@@ -167,49 +167,64 @@
 <section class="slide" data-n="03">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>The Incident</span><span>something like this happened in my company</span></header>
   <span class="ribbon">the problem</span>
-  <h2 class="display">399 commits. 691 files. One reviewer.</h2>
-  <p class="sub">A teammate let an agent loose on a migration. The PR opened. Nobody could read it. CI passed. So we merged it.</p>
+  <h2 class="display">399 commits. 691 files. <em>One reviewer.</em></h2>
+  <p class="sub">One teammate ran an agent across a migration. The PR opened as a <em>fait accompli</em> — the rest of the org saw it for the first time at review. CI passed. So we merged it.</p>
   <div class="grid g3" style="margin-top:6px">
     <div class="stat"><div class="num">399</div><div class="lbl">Commits in one branch</div></div>
     <div class="stat"><div class="num">691</div><div class="lbl">Files changed</div></div>
     <div class="stat"><div class="num">1</div><div class="lbl">Human who actually read it</div></div>
   </div>
   <p class="pull">"Looks good to me."<br><span style="font-size:14px;font-style:normal;color:var(--ink-8);font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase">— a reviewer who did not read 691 files</span></p>
-  <div class="footer"><span>03 / Problem</span><span>Pattern: vibe-code → mass PR → rubber-stamp → prod regression</span></div>
+  <p class="body" style="margin-top:6px;max-width:980px;color:var(--ink-10)">Coding agents (<em>Claude Code, Cursor, Devin, Codex</em>) work for <strong>one developer at a time</strong>. Real engineering change touches <strong>every team</strong> the diff lands on. The gap between those two is where the regression lives.</p>
+  <div class="footer"><span>03 / Problem</span><span>one person ships · rest of org sees a fait accompli</span></div>
 </section>
 
 <!-- ============================================================ 4 — Diagnosis ============================================================ -->
 <section class="slide" data-n="04">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Diagnosis</span><span>great power, great responsibility</span></header>
   <span class="ribbon">why this keeps happening</span>
-  <h2 class="display">Vibe-coding from zero is easy.<br><em>Touching what already exists is the hard part.</em></h2>
-  <div class="grid g2" style="margin-top:24px;gap:36px">
-    <div class="body">
-      <p><strong>Greenfield with an agent</strong> → no priors, no constraints, no taste yet to violate. The agent looks brilliant.</p>
-      <p><strong>Refactor / migrate an existing codebase</strong> → the agent must respect a thousand decisions it never made: ADRs, retry conventions, deploy policy, schema sign-offs, jest coverage floors, the why-this-was-2k-lines-and-not-200.</p>
-      <p>When unit tests pass on a vibe-coded source, the agent learns that the <em>shape of the bypass</em> is the way home. Tests stop being a contract; they become a permission slip.</p>
+  <h1 class="display" style="font-size:84px;margin-top:14px">Greenfield is easy.<br><em>Brownfield is the job.</em></h1>
+  <div class="grid g2" style="margin-top:24px;gap:48px;max-width:1200px">
+    <div style="border-left:2px solid var(--ds);padding-left:22px">
+      <div class="smallcaps" style="color:var(--ds);margin-bottom:8px">Greenfield · vibe-coding a fresh feature</div>
+      <p class="body" style="font-size:15px;color:var(--ink-11);margin:0">No priors. No conventions. Agent looks brilliant.</p>
     </div>
-    <div class="body">
-      <p class="pull" style="font-size:30px;border-left-color:var(--paper-muted)">With great power (coding agents) comes great responsibility — to ship at <em>scale</em>, in a codebase someone else has to maintain on Monday.</p>
-      <p style="margin-top:18px"><span class="chip a">architect</span> <span class="chip b">backend</span> <span class="chip d">data science</span> <span class="chip u">ui</span> <span class="chip o">devops</span></p>
-      <p>Major revamps are a <em>team sport</em>. The fix isn't a smarter agent. It's an org structure the agent has to ask permission from.</p>
+    <div style="border-left:2px solid var(--devops);padding-left:22px">
+      <div class="smallcaps" style="color:var(--devops);margin-bottom:8px">Brownfield · refactor or migrate</div>
+      <p class="body" style="font-size:15px;color:var(--ink-11);margin:0">A thousand decisions the agent never made. With strong unit tests on a <em>vibe-coded source</em>, the agent learns the <em>shape of the bypass</em> — and CI calls it green.</p>
     </div>
   </div>
-  <div class="footer"><span>04 / Diagnosis</span><span>"agents write bypasses, especially when the source is vibecoded"</span></div>
+  <p class="pull" style="font-size:30px;margin-top:24px;border-left-color:var(--paper-muted)">"With great power (coding agents) comes great responsibility — to ship at <em>scale</em>, in a codebase someone else has to maintain on Monday."</p>
+  <p class="body" style="font-size:16px;font-family:var(--serif);font-style:italic;color:var(--paper);max-width:980px;margin-top:auto">Major revamps are a <em>team sport</em>. The fix isn't a smarter agent — it's an org structure the agent has to ask permission from.</p>
+  <div class="footer"><span>04 / Diagnosis</span><span>tests stop being a contract — they become a permission slip</span></div>
 </section>
 
-<!-- ============================================================ 5 — Solution intro ============================================================ -->
+<!-- ============================================================ 5 — Why now ============================================================ -->
 <section class="slide" data-n="05">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Why now</span><span>the curve is bending</span></header>
+  <span class="ribbon">timing</span>
+  <h2 class="display">Three things became <em>true at once</em>.</h2>
+  <div class="grid g3" style="margin-top:34px;gap:32px">
+    <div class="stat" style="border-left-color:var(--ds)"><div class="num">01</div><div class="lbl" style="margin-top:14px;color:var(--paper)">Agents ship full PRs</div><p class="body" style="font-size:13px;margin-top:10px;color:var(--ink-10)">Devin, Codex, Claude Code — autonomous output is now hours of human work, daily.</p></div>
+    <div class="stat" style="border-left-color:var(--ui)"><div class="num">02</div><div class="lbl" style="margin-top:14px;color:var(--paper)">Team brains are queryable</div><p class="body" style="font-size:13px;margin-top:10px;color:var(--ink-10)">Hyperspell-class indexing fuses Slack, Notion, GitHub, Linear into a single answer surface. ADR-12 is now a fact, not a folder.</p></div>
+    <div class="stat" style="border-left-color:var(--backend)"><div class="num">03</div><div class="lbl" style="margin-top:14px;color:var(--paper)">Sandboxes are cheap</div><p class="body" style="font-size:13px;margin-top:10px;color:var(--ink-10)">Tensorlake-class firecracker microVMs make per-run, per-trigger code execution a 200 ms call away.</p></div>
+  </div>
+  <p class="pull" style="margin-top:auto">Without these three, TeamHQ is a Jira plugin. With them, it's the org's decision surface.</p>
+  <div class="footer"><span>05 / Why now</span><span>capability + grounding + cheap compute · the window is now</span></div>
+</section>
+
+<!-- ============================================================ 6 — Solution intro ============================================================ -->
+<section class="slide" data-n="06">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Introducing</span><span>the org's decision surface</span></header>
   <span class="ribbon">solution</span>
   <h2 class="display">Make every code change <em>start as a card</em>.</h2>
   <p class="sub">Routed to the right role. Grounded in the right team's brain. Verified in sandbox. Shipped only after quorum.</p>
   <div class="img-frame" style="margin-top:0"><img src="img/03-feed-hero.png" alt="TeamHQ feed"></div>
-  <div class="footer"><span>05 / Solution</span><span>Volume I, Issue 005 · Acme Eng · decision feed</span></div>
+  <div class="footer"><span>06 / Solution</span><span>Volume I, Issue 005 · Acme Eng · decision feed</span></div>
 </section>
 
-<!-- ============================================================ 6 — How it works (timeline) ============================================================ -->
-<section class="slide" data-n="06">
+<!-- ============================================================ 7 — How it works (timeline) ============================================================ -->
+<section class="slide" data-n="07">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>How it works</span><span>the loop</span></header>
   <h3 class="display">Trigger → Acceptance → Questions → Plans → Sandbox → Quorum → PR.</h3>
   <div class="timeline">
@@ -221,11 +236,11 @@
     <div class="step"><div class="dot"><span></span><div class="line"></div></div><div class="body"><h5>6 · Quorum gate</h5><p>Default ON. PR cannot ship until every team lead approves their plan card.</p></div></div>
     <div class="step"><div class="dot"><span></span></div><div class="body"><h5>7 · Real PR</h5><p>Branch pushed via OAuth-scoped <code>gh</code>. Merge, comment, audit trail logged back to InsForge.</p></div></div>
   </div>
-  <div class="footer"><span>06 / Loop</span><span>each step emits a card · UI streams them via /api/runs/:id/cards</span></div>
+  <div class="footer"><span>07 / Loop</span><span>each step emits a card · UI streams them via /api/runs/:id/cards</span></div>
 </section>
 
-<!-- ============================================================ 7 — Cast ============================================================ -->
-<section class="slide" data-n="07">
+<!-- ============================================================ 8 — Cast ============================================================ -->
+<section class="slide" data-n="08">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Acting As</span><span>identity controls who can decide what</span></header>
   <h2 class="display">Six personas. <em>Real role-gating.</em></h2>
   <p class="sub">View the same feed as anyone. Only the right viewer can approve the right card. Anyone can comment.</p>
@@ -237,150 +252,112 @@
     <div class="col"><h4>Dan Park</h4><div class="role"><span class="chip a">architect</span></div><p>Cross-team override authority. Breaks ties. Logs to audit.</p></div>
     <div class="col"><h4>Frank Lee</h4><div class="role"><span class="chip">pm</span></div><p>Files feature proposals. Triggers the AC flow.</p></div>
   </div>
-  <div class="footer"><span>07 / Cast</span><span>view-as toggle = identity switcher, not a filter</span></div>
+  <div class="footer"><span>08 / Cast</span><span>view-as toggle = identity switcher, not a filter</span></div>
 </section>
 
-<!-- ============================================================ 8 — Acceptance Criteria ============================================================ -->
-<section class="slide" data-n="08">
+<!-- ============================================================ 9 — Acceptance Criteria ============================================================ -->
+<section class="slide" data-n="09">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 02</span><span>acceptance criteria · 9 items</span></header>
   <span class="ribbon">card type · acceptance_criteria</span>
   <h3 class="display"><em>"Add streaming completions to chat UI for paying customers"</em></h3>
   <p class="body">For a feature proposal, the agent drafts the <em>definition of done</em> before any code is planned. Nine checkable items, each with a team owner and a verifiable shell command.</p>
   <div class="img-frame" style="margin-top:14px"><img src="img/04-acceptance-criteria.png" alt="acceptance criteria card"></div>
-  <div class="footer"><span>08 / AC</span><span>generated by Claude Sonnet 4.5 · structured JSON · status = pending → passed</span></div>
+  <div class="footer"><span>09 / AC</span><span>generated by Claude Sonnet 4.5 · structured JSON · status = pending → passed</span></div>
 </section>
 
-<!-- ============================================================ 9 — Question card ============================================================ -->
-<section class="slide" data-n="09">
+<!-- ============================================================ 10 — Question card ============================================================ -->
+<section class="slide" data-n="10">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 03</span><span>question for sarah chen (backend)</span></header>
   <span class="ribbon">card type · question</span>
   <h3 class="display">Per-role questions, <em>grounded in your own history.</em></h3>
   <p class="body">"Should we use the existing OpenAI client retry wrapper from #backend Slack — or does streaming need different retry logic?" The agent cites <em>your</em> ADR-12 + the exact Slack thread.</p>
   <div class="img-frame" style="margin-top:14px"><img src="img/05-question-card.png" alt="question card"></div>
-  <div class="footer"><span>09 / Question</span><span>only the addressed user can answer · everyone else: read-only with citations</span></div>
+  <div class="footer"><span>10 / Question</span><span>only the addressed user can answer · everyone else: read-only with citations</span></div>
 </section>
 
-<!-- ============================================================ 10 — Team plan ============================================================ -->
-<section class="slide" data-n="10">
+<!-- ============================================================ 11 — Team plan ============================================================ -->
+<section class="slide" data-n="11">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 07</span><span>backend team plan · awaiting sarah</span></header>
   <span class="ribbon">card type · team_plan</span>
   <h3 class="display">A plan, <em>cited like a paper.</em></h3>
   <p class="body">Each team's plan is synthesised against <em>that team's</em> Hyperspell collection — not a global prompt. The footnote sidebar pins every claim to an ADR or Slack thread. Approve, reject, or comment — gated by viewer role.</p>
   <div class="img-frame" style="margin-top:14px"><img src="img/06-team-plan.png" alt="team plan card"></div>
-  <div class="footer"><span>10 / Plan</span><span>gpt-oss-120b open-weights · per-team grounding · footnoted citations</span></div>
+  <div class="footer"><span>11 / Plan</span><span>gpt-oss-120b open-weights · per-team grounding · footnoted citations</span></div>
 </section>
 
-<!-- ============================================================ 11 — Sandbox + PR ============================================================ -->
-<section class="slide" data-n="11">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Card · 11–12</span><span>tensorlake sandbox · pr opened</span></header>
-  <span class="ribbon">card type · sandbox + pr_opened</span>
-  <h3 class="display">After quorum, <em>real code lands in real repos.</em></h3>
-  <p class="body">Tensorlake spins a firecracker microVM. <code>git clone</code>, branch, push. <code>gh pr create</code> with the multi-team plan in the body. PR is real, draft, attributable, mergeable.</p>
-  <div class="img-frame" style="margin-top:14px"><img src="img/07-sandbox-pr.png" alt="sandbox + PR opened"></div>
-  <div class="pr-box"><span class="label">VIEW PR</span><span>github.com/kitrakrev/teamhq-hero/pull/4</span></div>
-  <div class="footer"><span>11 / PR</span><span>real branch · real commit · real diff · real reviewers</span></div>
-</section>
-
-<!-- ============================================================ 12 — Real PR proof ============================================================ -->
+<!-- ============================================================ 12 — Real PR proof (merged) ============================================================ -->
 <section class="slide" data-n="12">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Evidence</span><span>github.com/kitrakrev/teamhq-hero/pull/4</span></header>
-  <span class="ribbon">proof · this is not a mock</span>
-  <h2 class="display">Pull request <em>#4</em>, opened by the agent.</h2>
-  <p class="sub">Body composed from per-team plans + citations. Branch <code>teamhq/run-1f408ef9</code>. Status: draft, awaiting team-lead review.</p>
-  <div class="img-frame img-flush" style="margin-top:0"><img src="img/12-real-pr.png" alt="real github PR"></div>
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Proof</span><span>github.com/kitrakrev/teamhq-hero/pull/4</span></header>
+  <span class="ribbon">this is not a mock</span>
+  <h2 class="display">After quorum: <em>a real PR.</em></h2>
+  <p class="sub">Tensorlake firecracker sandbox. <code>git clone</code>, branch, push, <code>gh pr create</code>. Body composed from per-team plans + citations. Draft #4, branch <code>teamhq/run-1f408ef9</code>.</p>
+  <div class="img-frame img-flush" style="margin-top:6px"><img src="img/12-real-pr.png" alt="real github PR"></div>
+  <div class="pr-box"><span class="label">VIEW PR</span><span>github.com/kitrakrev/teamhq-hero/pull/4 · 4 PRs landed today</span></div>
   <div class="footer"><span>12 / Proof</span><span>1f408ef9 · run completed · 12 cards emitted · sandbox python 3.12.3</span></div>
 </section>
 
-<!-- ============================================================ 13 — Sponsor stack ============================================================ -->
+<!-- ============================================================ 13 — Stack + Pluggable ============================================================ -->
 <section class="slide" data-n="13">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>The Stack</span><span>built on hyperspell · nia · tensorlake · insforge</span></header>
-  <h2 class="display">Each sponsor does <em>exactly</em> what they're best at.</h2>
-  <div class="stack-row">
-    <div class="vendor"><div class="name">Hyperspell</div><div class="role">Team brain</div><p>Per-team Slack + Notion + GitHub + Linear collections. <code>memories.search(answer=true)</code>. <code>gpt-oss-120b</code> open-weights model.</p></div>
-    <div class="vendor"><div class="name">Nia</div><div class="role">World context</div><p>Indexes upstream changelogs + public repos. The agent reads <em>outward</em> — competitor, dependency, ecosystem.</p></div>
-    <div class="vendor"><div class="name">Tensorlake</div><div class="role">Sandbox + agent runtime</div><p>Firecracker microVMs + Applications platform. Real <code>git</code>, real <code>gh</code>, real network. Function-as-a-service for the agent loop itself.</p></div>
-    <div class="vendor"><div class="name">InsForge</div><div class="role">App backend</div><p>Postgres + auth + AI gateway (Claude, GPT, Gemini, DeepSeek, Grok, MiniMax). One row per card. PostgREST conventions.</p></div>
-    <div class="vendor"><div class="name">Vercel</div><div class="role">Web</div><p>Next.js 16 App Router + Tailwind 4. Multi-tenant, session-scoped. PKCE OAuth flows for both read + write GitHub scopes.</p></div>
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>The Stack</span><span>composed, not entangled · bring your agent</span></header>
+  <h2 class="display">One brain per vendor.<br><em>Pluggable on top.</em></h2>
+  <div class="stack-row" style="grid-template-columns:repeat(5,1fr);margin-top:24px">
+    <div class="vendor"><div class="name">Hyperspell</div><div class="role">Team brain</div><p>Per-team Slack/Notion/GitHub/Linear · <code>gpt-oss-120b</code>.</p></div>
+    <div class="vendor"><div class="name">Nia</div><div class="role">World context</div><p>Indexes upstream changelogs + public repos.</p></div>
+    <div class="vendor"><div class="name">Tensorlake</div><div class="role">Agent runtime</div><p>Firecracker microVMs · real <code>git</code> + <code>gh</code>.</p></div>
+    <div class="vendor"><div class="name">InsForge</div><div class="role">Data plane</div><p>Postgres + auth + AI gateway · one row per card.</p></div>
+    <div class="vendor"><div class="name">Vercel</div><div class="role">Web</div><p>Next.js 16 · multi-tenant · session-scoped.</p></div>
   </div>
-  <div class="footer"><span>13 / Stack</span><span>One brain per vendor. Composed, not entangled.</span></div>
-</section>
-
-<!-- ============================================================ 14 — Coding agent of choice ============================================================ -->
-<section class="slide" data-n="14">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Pluggable</span><span>chat continuity via mcp</span></header>
-  <h2 class="display">Bring <em>your</em> coding agent.</h2>
-  <p class="sub">Claude Code · Cursor · Codex · Devin. The decision history lives in TeamHQ. Any MCP-compatible agent picks up where the last one left off.</p>
-  <div class="grid g2" style="margin-top:18px;gap:36px">
+  <div class="grid g2" style="margin-top:auto;margin-bottom:8px;gap:36px;align-items:end">
     <div class="body">
-      <p>The chat is stored on <em>our</em> side, not the agent's. Switch agents mid-stream and decisions stay coherent.</p>
-      <p>We ship a <strong>TeamHQ MCP server</strong> with seven tools: <code>list_runs</code>, <code>get_run</code>, <code>trigger_scenario</code>, <code>approve_card</code>, <code>reject_card</code>, <code>comment_card</code>, <code>answer_question</code>.</p>
-      <p>Drop one line into <code>~/.claude.json</code> and Claude Code can drive the whole org.</p>
+      <p style="font-size:18px;font-family:var(--serif);font-style:italic;color:var(--paper);margin:0 0 12px">Bring your coding agent.</p>
+      <p>Claude Code · Cursor · Codex · Devin. Decision history lives in TeamHQ. Switch agents mid-stream — context portable. MCP server ships 7 tools.</p>
     </div>
-    <div class="body" style="border:1px solid var(--ink-4);padding:22px;background:var(--ink-1)">
-      <div class="smallcaps" style="margin-bottom:10px;color:var(--paper-muted)">install in claude code</div>
-      <pre style="margin:0;font-family:var(--mono);font-size:12.5px;color:var(--ink-11);white-space:pre-wrap;line-height:1.65">claude mcp add teamhq \
+    <div style="border:1px solid var(--ink-4);padding:18px;background:var(--ink-1)">
+      <div class="smallcaps" style="margin-bottom:8px;color:var(--paper-muted)">install in claude code</div>
+      <pre style="margin:0;font-family:var(--mono);font-size:12px;color:var(--ink-11);white-space:pre-wrap;line-height:1.55">claude mcp add teamhq \
   --env TEAMHQ_BASE=https://web-nine-lemon-57.vercel.app \
   --env TEAMHQ_PERSONA=sarah \
   -- python /path/to/teamhq_mcp.py</pre>
     </div>
   </div>
-  <div class="footer"><span>14 / Pluggable</span><span>agent-agnostic · history portable · MCP over stdio</span></div>
+  <div class="footer"><span>13 / Stack</span><span>each vendor does exactly what they're best at · agent-agnostic on top</span></div>
 </section>
 
-<!-- ============================================================ 15 — Quorum gate / kill switch ============================================================ -->
-<section class="slide" data-n="15">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Quorum</span><span>track 4 pillar · hyperspell load-bearing</span></header>
-  <h2 class="display">If <em>Hyperspell</em> goes dark,<br>the demo <em>visibly</em> degrades.</h2>
-  <p class="sub">No team brain → no grounded questions → no cited plans. The agent <em>can't</em> bypass; the org <em>can't</em> approve. Track 4's load-bearing test, baked in.</p>
-  <div class="grid g3" style="margin-top:18px">
+<!-- ============================================================ 14 — Hyperspell load-bearing ============================================================ -->
+<section class="slide" data-n="14">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Track 4 pillar</span><span>hyperspell load-bearing</span></header>
+  <span class="ribbon">kill-switch test</span>
+  <h2 class="display">Disconnect Hyperspell.<br><em>The demo dies.</em></h2>
+  <p class="sub">No team brain → no grounded questions → no cited plans → no quorum → no PR. The agent <em>can't</em> bypass; the org <em>can't</em> approve. Track 4's load-bearing pillar, baked in.</p>
+  <div class="grid g3" style="margin-top:24px">
     <div class="stat"><div class="num">85</div><div class="lbl">Team artifacts indexed</div></div>
     <div class="stat"><div class="num">19</div><div class="lbl">Brain citations on this run</div></div>
     <div class="stat"><div class="num">04</div><div class="lbl">Required approvals before ship</div></div>
   </div>
-  <p class="pull" style="margin-top:30px">Quorum is not a checkbox. It's the product.</p>
-  <div class="footer"><span>15 / Quorum</span><span>TEAMHQ_BLOCK_UNTIL_APPROVED=1 default · timeout = halt + audit card</span></div>
+  <p class="pull" style="margin-top:auto">Quorum is not a checkbox. It's the product.</p>
+  <div class="footer"><span>14 / Pillar</span><span>TEAMHQ_BLOCK_UNTIL_APPROVED=1 default · timeout = halt + audit card</span></div>
 </section>
 
-<!-- ============================================================ 16 — Onboarding ============================================================ -->
-<section class="slide" data-n="16">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Onboarding</span><span>three steps · zero mocks</span></header>
-  <h2 class="display">From zero to first PR <em>in three screens.</em></h2>
-  <p class="sub">Connect GitHub via real PKCE OAuth. Upgrade to write scopes. Pick repos. Invite the team. The agent inherits the tenant.</p>
-  <div class="img-frame" style="margin-top:14px"><img src="img/08-onboard.png" alt="onboarding wizard"></div>
-  <div class="footer"><span>16 / Onboard</span><span>github_write OAuth → oauth_tokens row → agent uses GH_TOKEN at PR time</span></div>
-</section>
-
-<!-- ============================================================ 17 — Multi-tenant pages ============================================================ -->
-<section class="slide" data-n="17">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Org Pages</span><span>projects · connectors · people</span></header>
-  <h3 class="display">Real multi-tenant. <em>Per-session org_id.</em></h3>
-  <p class="body" style="max-width:1100px">Every read scoped to the viewer's org. No env-driven leak. New signups auto-provision a tenant + a default backend team + a starter project.</p>
-  <div class="grid g3" style="margin-top:14px;gap:18px;flex:1">
+<!-- ============================================================ 15 — Architecture + Multi-tenant ============================================================ -->
+<section class="slide" data-n="15">
+  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Architecture</span><span>three runtimes · one feed · multi-tenant</span></header>
+  <h3 class="display">Three runtimes, <em>one decision feed.</em></h3>
+  <div class="arch" style="grid-template-columns:1fr 1fr 1fr;margin-top:14px">
+    <div class="col"><h4>Vercel · Next.js</h4><div class="role">user-facing</div><p>App Router · Tailwind 4 · streams cards every 2 s · PKCE OAuth (read + write GH scopes).</p></div>
+    <div class="col"><h4>Tensorlake · Agent</h4><div class="role">compute</div><p>Custom <code>Image()</code> w/ git + gh · @application + @function · firecracker sandbox at runtime.</p></div>
+    <div class="col"><h4>InsForge · Backend</h4><div class="role">data plane</div><p>Postgres · orgs, org_members, teams, projects, runs, cards, oauth_tokens, audit_log · AI gateway.</p></div>
+  </div>
+  <div class="grid g3" style="margin-top:18px;gap:14px;flex:1;min-height:0">
     <div class="img-frame" style="margin:0;height:100%"><img src="img/09-projects.png" alt="projects"></div>
     <div class="img-frame" style="margin:0;height:100%"><img src="img/10-connectors.png" alt="connectors"></div>
     <div class="img-frame" style="margin:0;height:100%"><img src="img/11-people.png" alt="people"></div>
   </div>
-  <div class="footer"><span>17 / Tenant</span><span>org_members · org_repos · projects · oauth_tokens · all per-org</span></div>
+  <p class="body" style="margin-top:14px;max-width:1100px"><em>Real multi-tenant.</em> Every read scoped to the viewer's org_id from session — no env leak. New signups auto-provision tenant + default team + starter project.</p>
+  <div class="footer"><span>15 / Arch</span><span>each runtime fails cleanly · MCP makes the agent layer swappable</span></div>
 </section>
 
-<!-- ============================================================ 18 — Architecture ============================================================ -->
-<section class="slide" data-n="18">
-  <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Architecture</span><span>three runtimes · one decision feed</span></header>
-  <h2 class="display">Three runtimes, <em>one decision feed</em>.</h2>
-  <div class="arch" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="col"><h4>Vercel · Next.js</h4><div class="role">user-facing</div><p>App Router · Tailwind 4 · server actions for OAuth + scenario triggers · streams cards to the feed every 2 s.</p></div>
-    <div class="col"><h4>Tensorlake · Agent</h4><div class="role">compute</div><p>Custom <code>Image()</code> w/ git + gh + python · @application + @function · firecracker sandbox at runtime · secrets via <code>tl secrets</code>.</p></div>
-    <div class="col"><h4>InsForge · Backend</h4><div class="role">data plane</div><p>Postgres tables: orgs, org_members, teams, projects, runs, cards, oauth_tokens, audit_log · AI gateway for ranking + structured JSON.</p></div>
-  </div>
-  <div class="grid g2" style="margin-top:24px">
-    <div class="body"><p><strong>Why split?</strong> Each runtime stays simple: web is stateless, agent is ephemeral, DB is the only durable surface. Failure of any one degrades cleanly.</p></div>
-    <div class="body"><p><strong>Why MCP on top?</strong> The agent's chat history is durable in InsForge — any agent client can resume. Devin today, Claude Code tomorrow, Codex next week.</p></div>
-  </div>
-  <div class="footer"><span>18 / Arch</span><span>web → tensorlake → insforge · hyperspell + nia + github inline</span></div>
-</section>
-
-<!-- ============================================================ 19 — What we shipped ============================================================ -->
-<section class="slide" data-n="19">
+<!-- ============================================================ 16 — What we shipped ============================================================ -->
+<section class="slide" data-n="16">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Receipts</span><span>shipped today</span></header>
   <h2 class="display">Shipped in <em>one day.</em></h2>
   <ul class="checklist">
@@ -391,11 +368,11 @@
     <li><span class="num">5</span><div><div class="t">Editorial UI · Instrument Serif + JetBrains Mono · timeline rail · footnote citations · view-as identity switcher · per-team accent system.</div><div class="meta">web/src/components/Card.tsx · Feed.tsx · globals.css</div></div></li>
     <li><span class="num">6</span><div><div class="t">35+ tests across personas, codeowners, loop, InsForge, Hyperspell, Tensorlake, auth, projects, approvals.</div><div class="meta">tests/ · pytest -v · all green</div></div></li>
   </ul>
-  <div class="footer"><span>19 / Receipts</span><span>one repo, one demo, one day · git log doesn't lie</span></div>
+  <div class="footer"><span>16 / Receipts</span><span>one repo, one demo, one day · git log doesn't lie</span></div>
 </section>
 
-<!-- ============================================================ 20 — Judging criteria ============================================================ -->
-<section class="slide" data-n="20">
+<!-- ============================================================ 17 — Judging criteria ============================================================ -->
+<section class="slide" data-n="17">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Judging Criteria</span><span>track 4 · how we map</span></header>
   <span class="ribbon">how this scores</span>
   <h3 class="display">Each criterion lands somewhere <em>specific</em>.</h3>
@@ -439,21 +416,18 @@
       </tr>
     </tbody>
   </table>
-  <div class="footer"><span>20 / Judging</span><span>cross-source · real work · hyperspell load-bearing · demo · personal</span></div>
+  <div class="footer"><span>17 / Judging</span><span>cross-source · real work · hyperspell load-bearing · demo · personal</span></div>
 </section>
 
-<!-- ============================================================ 21 — The ask ============================================================ -->
-<section class="slide" data-n="21">
+<!-- ============================================================ 18 — Closing ============================================================ -->
+<section class="slide" data-n="18">
   <header class="masthead"><span class="brand">T<span class="slash">/</span>HQ</span><span>Closing</span><span>thank you</span></header>
-  <h1 class="display" style="font-size:96px"><em>Coding agents</em> are powerful.<br>Engineering orgs are <em>not</em> single-player.</h1>
-  <p class="sub" style="font-size:28px;max-width:980px">TeamHQ is the surface where the org converges to ship — grounded in each team's brain, gated by the right roles, attributable end-to-end.</p>
-  <div class="grid g4" style="margin-top:auto;margin-bottom:36px">
-    <div class="stat"><div class="num">Demo</div><div class="lbl">web-nine-lemon-57.vercel.app</div></div>
-    <div class="stat"><div class="num">Code</div><div class="lbl">github.com/kitrakrev/teamhq-hero</div></div>
-    <div class="stat"><div class="num">MCP</div><div class="lbl">claude mcp add teamhq …</div></div>
-    <div class="stat"><div class="num">Track 4</div><div class="lbl">Hyperspell · load-bearing</div></div>
+  <h1 class="display" style="font-size:108px;margin-top:auto"><em>Coding agents</em> are powerful.<br>Engineering orgs are <em>not</em><br>single-player.</h1>
+  <div class="grid g2" style="margin-top:auto;margin-bottom:48px;gap:48px;max-width:1100px">
+    <div class="stat"><div class="num" style="font-size:32px">Demo</div><div class="lbl" style="font-size:13px;letter-spacing:.14em">web-nine-lemon-57.vercel.app</div></div>
+    <div class="stat"><div class="num" style="font-size:32px">Code</div><div class="lbl" style="font-size:13px;letter-spacing:.14em">github.com/kitrakrev/teamhq</div></div>
   </div>
-  <div class="footer"><span>21 / Fin</span><span>karthik · sarabesh2001@gmail.com · @kitrakrev</span></div>
+  <div class="footer"><span>18 / Fin</span><span>karthik · sarabesh2001@gmail.com · @kitrakrev</span></div>
 </section>
 
 </div>
@@ -463,7 +437,7 @@
 
 <div class="nav">
   <button id="prev" aria-label="previous">◀ prev</button>
-  <span class="counter" id="counter">01 / 20</span>
+  <span class="counter" id="counter">01 / 18</span>
   <button id="next" aria-label="next">next ▶</button>
   <button id="print" aria-label="print">⤓ pdf</button>
 </div>
@@ -478,114 +452,105 @@
   // a few short bullets I should hit out loud, and the judging-criteria
   // pillars this slide moves the needle on.
   const NOTES = [
-    {t:"Cover", b:[
-      "Pause for one beat. Let them read the tagline.",
-      "TeamHQ. Engineering org's decision surface. Not another agent.",
+    {t:"01 · Cover", b:[
+      "Pause one beat. Let the tagline land.",
+      "TeamHQ — engineering org's decision surface. Not another agent.",
       "Built in one day on Hyperspell, Nia, Tensorlake, InsForge."
     ], p:["demo"]},
-    {t:"Audience hooks", b:[
+    {t:"02 · Audience hooks", b:[
       "Read each question slow. Wait for hands.",
-      "By Q4 most hands are still up. By Q5 hands drop.",
-      "That dropped hand is the gap TeamHQ closes."
+      "By Q4 most hands stay up. By Q5 they drop.",
+      "That dropped hand = the gap TeamHQ closes."
     ], p:["demo","personal"]},
-    {t:"The Incident — PR #1260", b:[
-      "Tell it as a real story: 'something like this happened in my company'.",
-      "399 commits, 691 files, one reviewer. CI green. Merged.",
-      "Land the line: 'Looks good to me — by a reviewer who did not read 691 files.'"
+    {t:"03 · The Incident — PR #1260", b:[
+      "'Something like this happened in my company.'",
+      "399 commits / 691 files / one reviewer. CI green. Merged.",
+      "Hammer the framing: agents work for ONE dev. Engineering touches MANY teams.",
+      "Land the quote: 'Looks good to me — by a reviewer who did not read 691 files.'"
     ], p:["personal"]},
-    {t:"Diagnosis — agents write bypasses", b:[
-      "Vibe-coding from zero looks brilliant — no priors to violate.",
-      "Refactoring an existing codebase is the hard part.",
-      "Tests stop being a contract; they become a permission slip.",
-      "Solution isn't a smarter agent — it's an org structure the agent must ask permission from."
-    ], p:["demo","personal"]},
-    {t:"Solution — every change is a card", b:[
-      "Switch to live UI here if it works; otherwise the embedded screenshot is the same view.",
-      "Point at the masthead, the run picker, the view-as toggle.",
+    {t:"04 · Diagnosis", b:[
+      "Greenfield = easy. Brownfield = the job.",
+      "Vibe-coded source + strong unit tests = agent learns the SHAPE OF THE BYPASS.",
+      "Tests stop being a contract; become a permission slip.",
+      "Drop the great-power line — it earns the rest of the deck.",
+      "Fix isn't a smarter agent. It's an org structure the agent must ask permission from."
+    ], p:["personal","cross-source"]},
+    {t:"05 · Why now", b:[
+      "Three things became true at once: agents ship full PRs · brains are queryable · sandboxes are cheap.",
+      "Without these three, TeamHQ is a Jira plugin. With them, it's the org's decision surface.",
+      "Use this slide if a judge asks 'why hasn't anyone built this?'"
+    ], p:["demo","cross-source"]},
+    {t:"06 · Solution — every change is a card", b:[
+      "Switch to live UI if possible; the screenshot is the same view.",
+      "Point at the masthead, run picker, view-as toggle.",
       "Editorial layout = engineering tool, not consumer SaaS."
     ], p:["demo","real-work"]},
-    {t:"How it works — the loop", b:[
-      "Walk down the timeline. Trigger → AC → Questions → Plans → Sandbox → Quorum → PR.",
+    {t:"07 · The loop", b:[
+      "Walk the timeline: Trigger → AC → Questions → Plans → Sandbox → Quorum → PR.",
       "Quorum gate is default ON. Without approvals, no PR.",
-      "Each step emits a card; UI streams them every 2 s."
+      "Each step emits a card; UI streams every 2 s."
     ], p:["real-work","cross-source"]},
-    {t:"Cast — six personas", p:["demo"], b:[
+    {t:"08 · Cast — six personas", b:[
       "Sarah backend, Iris DS, Alice UI, Grace DevOps, Dan architect, Frank PM.",
       "Click view-as. Same feed, different action surface.",
-      "Identity controls who can decide what — not a filter."
-    ]},
-    {t:"Acceptance criteria card", p:["cross-source","real-work"], b:[
-      "When PMs file a feature, agent drafts definition-of-done first.",
-      "9 items here; each owned by a team; each verifiable via a shell command.",
-      "Generated by Claude Sonnet 4.5 via InsForge AI gateway."
-    ]},
-    {t:"Question card — grounded in your history", p:["cross-source","hyperspell"], b:[
-      "Ask Sarah a real question, citing her ADR-12 + her #backend Slack thread.",
-      "Iris/Alice/Grace see read-only — only Sarah can answer.",
+      "Identity controls who can decide — not a filter.",
+      "This is HOW all teammates get involved in major revamps."
+    ], p:["demo"]},
+    {t:"09 · Acceptance criteria card", b:[
+      "When PMs file a feature, agent drafts definition-of-done FIRST.",
+      "9 items, each owned by a team, each verifiable via shell command.",
+      "Generated via Claude Sonnet 4.5 through InsForge's AI gateway."
+    ], p:["cross-source","real-work"]},
+    {t:"10 · Question card — grounded in YOUR history", b:[
+      "Sarah is asked about HER ADR-12 + HER #backend Slack thread.",
+      "Iris/Alice/Grace see read-only.",
       "This is Hyperspell load-bearing: no team brain, no question."
-    ]},
-    {t:"Team plan — cited like a paper", p:["cross-source","hyperspell"], b:[
-      "Each plan synthesises against THAT team's Hyperspell collection.",
+    ], p:["cross-source","hyperspell"]},
+    {t:"11 · Team plan — cited like a paper", b:[
+      "Each plan synthesised against THAT team's Hyperspell collection.",
       "Footnote sidebar pins every claim to ADR or Slack.",
-      "Approve / Reject / Comment is gated by viewer role."
-    ]},
-    {t:"Sandbox + PR opened", p:["real-work","hyperspell"], b:[
-      "Tensorlake firecracker microVM. Real git, real gh.",
-      "On approval the agent pushes a branch and opens a draft PR.",
-      "PR body includes per-team plans + citations — code review pre-loaded."
-    ]},
-    {t:"Real PR — not a mock", p:["real-work"], b:[
-      "Open the GitHub tab. Show pull/4. Branch name teamhq/run-1f408ef9.",
-      "Click the 4 PRs in /pulls — every one was opened by the agent today.",
-      "If asked: yes, the agent can be Claude Code, Codex, or Devin."
-    ]},
-    {t:"Sponsor stack", p:["cross-source","hyperspell","real-work"], b:[
-      "Hyperspell = team brain. Nia = world context. Tensorlake = sandbox + agent runtime. InsForge = data plane + AI gateway. Vercel = web.",
-      "One brain per vendor. Composed, not entangled.",
-      "Each does exactly what it's best at — that's why nothing leaks."
-    ]},
-    {t:"Pluggable — bring your agent", p:["real-work","demo"], b:[
-      "MCP server — 7 tools — Claude Code reads runs and approves cards.",
-      "Chat history is durable in InsForge — switch agents and decisions stay coherent.",
-      "Demo this if time allows: claude code → /mcp → list_runs → approve."
-    ]},
-    {t:"Quorum gate — Hyperspell load-bearing", p:["hyperspell"], b:[
-      "Disconnect Hyperspell live → questions vanish, plans go citation-less.",
-      "TEAMHQ_BLOCK_UNTIL_APPROVED=1 by default — no quorum, no PR.",
+      "Approve / Reject / Comment gated by viewer role."
+    ], p:["cross-source","hyperspell"]},
+    {t:"12 · Real PR — not a mock", b:[
+      "Tensorlake firecracker sandbox · git clone, branch, push, gh pr create.",
+      "Open GitHub tab. pull/4. Branch teamhq/run-1f408ef9.",
+      "4 PRs landed today — every one opened by the agent."
+    ], p:["real-work","hyperspell"]},
+    {t:"13 · Stack + Pluggable", b:[
+      "One brain per vendor. Hyperspell · Nia · Tensorlake · InsForge · Vercel.",
+      "Composed, not entangled.",
+      "Bring your agent — Claude Code / Cursor / Codex / Devin via the MCP server.",
+      "If time: live demo `claude mcp add teamhq …`"
+    ], p:["cross-source","real-work","demo"]},
+    {t:"14 · Hyperspell load-bearing", b:[
+      "Track 4 pillar — kill-switch test.",
+      "Disconnect Hyperspell live → questions vanish, plans citation-less.",
+      "TEAMHQ_BLOCK_UNTIL_APPROVED=1 default. No quorum, no PR.",
       "Quorum is not a checkbox; it's the product."
-    ]},
-    {t:"Onboarding — three steps", p:["demo","real-work"], b:[
-      "Real GitHub PKCE OAuth — read scopes via InsForge shared app.",
-      "Optional upgrade to write scopes via our own GitHub OAuth app.",
-      "Tenant auto-provisioned on first signup — backend team + starter project."
-    ]},
-    {t:"Multi-tenant pages", p:["real-work","demo"], b:[
-      "Projects, Connectors, People — every read is org-scoped.",
-      "No env-driven org_id. Session resolves it per-request.",
-      "Connectors page surfaces Slack/Notion/GitHub/Linear/Gmail/Drive/Teams."
-    ]},
-    {t:"Architecture", p:["real-work","cross-source"], b:[
-      "Three runtimes: Vercel (web) → Tensorlake (agent) → InsForge (data).",
+    ], p:["hyperspell"]},
+    {t:"15 · Architecture + Multi-tenant", b:[
+      "Vercel (web) → Tensorlake (agent) → InsForge (data plane).",
       "Each fails cleanly on its own.",
-      "Hyperspell + Nia + GitHub are sources, not runtime owners."
-    ]},
-    {t:"Receipts — what shipped today", p:["real-work","demo"], b:[
-      "Run all six bullets confidently — git log doesn't lie.",
-      "If pressed: 35 tests pass, 4 PRs landed, 12 cards on the streaming feature run.",
+      "Real multi-tenant: every read scoped to viewer's org_id from session.",
+      "New signup auto-provisions tenant + default backend team + starter project."
+    ], p:["real-work","cross-source"]},
+    {t:"16 · Receipts — shipped today", b:[
+      "Run six bullets confidently. git log doesn't lie.",
+      "If pressed: 35 tests pass, 4 PRs landed, 12 cards on the streaming-feature run.",
       "Tensorlake-deployed agent is live; gh + git inside the container."
-    ]},
-    {t:"Judging criteria mapping", p:["cross-source","real-work","hyperspell","demo","personal"], b:[
-      "Walk the table left-to-right. Don't read every cell — point at the target column.",
-      "Cross-source 30: brain IS the product.",
-      "Real work 25: 4 PRs.",
-      "Hyperspell 25: removing it breaks the demo.",
-      "Demo + Personal: this slide deck IS the demo, mid-flight."
-    ]},
-    {t:"Closing", p:["demo","personal"], b:[
-      "Land the closing line: 'Coding agents are powerful. Engineering orgs are not single-player.'",
-      "Demo URL, repo, MCP install one-liner all on screen.",
+    ], p:["real-work","demo"]},
+    {t:"17 · Judging criteria mapping", b:[
+      "Walk the table left to right. Point at the TARGET column.",
+      "Cross-source 30%: brain IS the product.",
+      "Real work 25%: 4 PRs.",
+      "Hyperspell 25%: removing it breaks the demo.",
+      "Demo + Personal: this deck IS the demo, mid-flight."
+    ], p:["cross-source","real-work","hyperspell","demo","personal"]},
+    {t:"18 · Closing", b:[
+      "Land the line: 'Coding agents are powerful. Engineering orgs are not single-player.'",
+      "Demo URL + repo on screen — let it sit.",
       "Thank-you. Pause. Take questions."
-    ]},
+    ], p:["demo","personal"]},
   ];
 
   function renderNote(n){
@@ -618,8 +583,9 @@
   document.getElementById('prev').onclick=()=>show(i-1);
   document.getElementById('next').onclick=()=>show(i+1);
   document.getElementById('print').onclick=()=>window.print();
-  // Initial render so notes are populated even before any nav.
+  // Initial render so notes + counter are populated even before any nav.
   renderNote(0);
+  counter.textContent='01 / '+String(slides.length).padStart(2,'0');
   // Hash deep-link
   if(location.hash){
     const n=parseInt(location.hash.slice(1),10);
