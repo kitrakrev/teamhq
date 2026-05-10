@@ -22,3 +22,7 @@ node_modules/
 .trae
 .windsurf
 .tensorlake/
+
+# Demo video — too big for git blob (>100MB). Attached as GitHub Release asset.
+video-demo/*.mov
+video-demo/*.mp4
