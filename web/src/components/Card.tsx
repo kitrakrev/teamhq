@@ -175,11 +175,24 @@ export function Card({ card, viewer, index = 0 }: Props) {
         )}
 
         {/* Agent reply card — chat bubble w/ optional role tag */}
-        {card.card_type === 'agent_reply' && body.text && (
+        {card.card_type === 'agent_reply' && (body.text || (body as { streaming?: boolean }).streaming) && (
           <div className="mt-2 hairline px-4 py-3 max-w-2xl"
                style={{ background: 'color-mix(in srgb, var(--paper) 8%, transparent)', borderColor: 'var(--paper)' }}>
-            <div className="smallcaps text-[var(--paper)] mb-1">Agent</div>
-            <p className="text-[14px] text-[var(--ink-12)] leading-snug whitespace-pre-wrap">{body.text}</p>
+            <div className="smallcaps text-[var(--paper)] mb-1 flex items-center gap-2">
+              Agent
+              {(body as { streaming?: boolean }).streaming === true && (
+                <span className="text-[10px] text-[var(--paper-muted)] inline-flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-[var(--paper)] animate-pulse" />
+                  streaming
+                </span>
+              )}
+            </div>
+            <p className="text-[14px] text-[var(--ink-12)] leading-snug whitespace-pre-wrap">
+              {body.text || ''}
+              {(body as { streaming?: boolean }).streaming === true && (
+                <span className="inline-block w-[7px] h-[14px] ml-[1px] align-text-bottom bg-[var(--paper)] animate-pulse" />
+              )}
+            </p>
             {body.rationale && (
               <p className="text-[11.5px] text-[var(--ink-9)] mt-2">
                 <span className="smallcaps text-[var(--ink-7)] mr-1">why</span>

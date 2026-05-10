@@ -175,6 +175,19 @@ export const ifg = {
     if (!orgId) return [];
     return get<Card[]>(`/api/database/records/cards?run_id=eq.${runId}&order=created_at.asc${orgClause(orgId)}`);
   },
+  async updateCardBody(
+    cardId: string,
+    body: Record<string, unknown>,
+    status?: string | null,
+    title?: string | null,
+    teamId?: string | null,
+  ): Promise<void> {
+    const payload: Record<string, unknown> = { body };
+    if (status) payload.status = status;
+    if (title) payload.title = title;
+    if (teamId !== undefined) payload.team_id = teamId;
+    await patch(`/api/database/records/cards?id=eq.${cardId}`, payload);
+  },
   async createCard(orgId: string, input: {
     run_id: string;
     project_id?: string | null;
