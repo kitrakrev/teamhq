@@ -12,17 +12,22 @@ type Props = {
   initialRuns: Run[];
   initialCards: CardRow[];
   initialRunId: string | null;
+  orgName: string;
+  orgSlug: string;
+  sessionEmail: string | null;
 };
 
-export function Feed({ initialRuns, initialCards, initialRunId }: Props) {
-  const [viewerKey, setViewerKey] = useState<Persona['key']>('sarah');
+export function Feed({ initialRuns, initialCards, initialRunId, orgName, orgSlug, sessionEmail }: Props) {
+  // Pick the persona that matches the signed-in email so view-as defaults to
+  // the actual logged-in user. Falls back to sarah for the demo cookie path.
+  const initialPersona = (PERSONAS.find(p => p.email === sessionEmail)?.key ?? 'sarah') as Persona['key'];
+  const [viewerKey, setViewerKey] = useState<Persona['key']>(initialPersona);
   const [runs, setRuns] = useState<Run[]>(initialRuns);
   const [cards, setCards] = useState<CardRow[]>(initialCards);
   const [runId, setRunId] = useState<string | null>(initialRunId);
   const [, startTransition] = useTransition();
 
   const viewer = PERSONAS.find(p => p.key === viewerKey)!;
-  const orgName = process.env.NEXT_PUBLIC_ORG_NAME ?? 'Org';
   const activeRun = runs.find(r => r.id === runId);
 
   useEffect(() => {
@@ -48,6 +53,7 @@ export function Feed({ initialRuns, initialCards, initialRunId }: Props) {
     <div className="min-h-screen relative">
       <Chrome
         orgName={orgName}
+        orgSlug={orgSlug}
         runs={runs}
         runId={runId}
         setRunId={setRunId}

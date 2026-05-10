@@ -19,7 +19,7 @@ export function ViewAsToggle({ current, onChange }: Props) {
         </div>
 
         <div className="ml-auto flex items-stretch gap-0 hairline">
-          {PERSONAS.filter(p => p.role === 'lead').map(p => {
+          {PERSONAS.filter(p => p.role === 'lead' || p.role === 'architect').map(p => {
             const active = p.key === current;
             return (
               <button

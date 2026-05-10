@@ -82,6 +82,16 @@ def _resolve_org_id(trigger: TriggerSpec) -> str:
 
 
 def start_run(trigger: TriggerSpec, org_id: str) -> dict[str, Any]:
+    # If the caller (e.g. /api/run-scenario) already inserted a run row and
+    # passed its id via env, attach to that instead of inserting another.
+    attach_id = os.environ.get("TEAMHQ_ATTACH_RUN_ID")
+    if attach_id:
+        return {
+            "id": attach_id,
+            "org_id": org_id,
+            "repo": trigger.repo,
+            "status": "running",
+        }
     payload = {
         "org_id": org_id,
         "repo": trigger.repo,

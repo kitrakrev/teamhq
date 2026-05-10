@@ -2,16 +2,18 @@
 
 import type { Persona } from '@/lib/personas';
 import type { Run } from '@/lib/insforge';
+import { ThemeToggle } from './ThemeToggle';
 
 type Props = {
   orgName: string;
+  orgSlug?: string;
   runs: Run[];
   runId: string | null;
   setRunId: (id: string | null) => void;
   viewer: Persona;
 };
 
-export function Chrome({ orgName, runs, runId, setRunId, viewer }: Props) {
+export function Chrome({ orgName, orgSlug = 'acme-eng', runs, runId, setRunId, viewer }: Props) {
   const activeRun = runs.find(r => r.id === runId);
   const issueNo = activeRun ? runs.findIndex(r => r.id === runId) + 1 : 0;
 
@@ -34,7 +36,22 @@ export function Chrome({ orgName, runs, runId, setRunId, viewer }: Props) {
           <span className="text-[var(--ink-9)]">decision feed</span>
         </nav>
 
+        {/* Quick-nav links — get the user from feed → other org pages */}
+        <nav className="flex items-baseline gap-4 ml-2 text-[12px]">
+          <a href={`/orgs/${orgSlug}/projects`} className="text-[var(--ink-9)] hover:text-[var(--paper)] transition-colors">projects</a>
+          <a href={`/orgs/${orgSlug}/people`} className="text-[var(--ink-9)] hover:text-[var(--paper)] transition-colors">people</a>
+          <a href={`/orgs/${orgSlug}/connectors`} className="text-[var(--ink-9)] hover:text-[var(--paper)] transition-colors">connectors</a>
+        </nav>
+
         <div className="ml-auto flex items-center gap-4">
+          {/* Prominent New-project CTA — judges should be able to start from any page */}
+          <a
+            href={`/orgs/${orgSlug}/projects/new`}
+            className="hairline px-3 py-1.5 smallcaps text-[var(--paper)] hover:text-[var(--ink-0)] hover:bg-[var(--paper)] transition-colors"
+            style={{ borderColor: 'var(--paper-muted)' }}
+          >
+            + new project
+          </a>
           {/* Run selector — looks like an issue number on a print masthead */}
           <div className="flex items-center gap-2">
             <span className="smallcaps text-[var(--ink-7)]">issue</span>
@@ -62,6 +79,16 @@ export function Chrome({ orgName, runs, runId, setRunId, viewer }: Props) {
 
           {/* Active viewer */}
           <ViewerChip viewer={viewer} />
+
+          {/* Theme toggle + logout */}
+          <ThemeToggle />
+          <a
+            href="/api/auth/signout"
+            className="smallcaps text-[var(--ink-8)] hover:text-[var(--err)] transition-colors px-2 py-1"
+            title="Sign out"
+          >
+            sign out
+          </a>
         </div>
       </div>
 

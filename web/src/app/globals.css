@@ -41,6 +41,39 @@
   --err:   #b07a89;
 }
 
+/* Light theme — flips the ink scale, keeps parchment as accent.
+   Activated via `data-theme="light"` on <html> (set by ThemeToggle). */
+html[data-theme="light"] {
+  --ink-0:  #faf8f3;
+  --ink-1:  #f3eee2;
+  --ink-2:  #ece5d2;
+  --ink-3:  #e2d9c2;
+  --ink-4:  #d3c8ad;
+  --ink-5:  #c0b395;
+  --ink-6:  #9a8e72;
+  --ink-7:  #80755b;
+  --ink-8:  #665c46;
+  --ink-9:  #4d4533;
+  --ink-10: #383222;
+  --ink-11: #1f1c12;
+  --ink-12: #0c0a04;
+
+  --paper:        #6b3f12;
+  --paper-muted:  #8a5a26;
+  --paper-faint:  rgba(107, 63, 18, 0.10);
+
+  --team-backend: #9a6b1c;
+  --team-ds:      #2d6850;
+  --team-ui:      #2d588c;
+  --team-devops:  #94481c;
+  --team-arch:    #5a3a82;
+  --team-pm:      #8a3a52;
+
+  --ok:    #2d6850;
+  --warn:  #94481c;
+  --err:   #8a3a52;
+}
+
 @theme inline {
   --color-background: var(--ink-0);
   --color-foreground: var(--ink-12);
