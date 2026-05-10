@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Card } from './Card';
 import { Chrome } from './Chrome';
 import { ViewAsToggle } from './ViewAsToggle';
+import { RunComposer } from './RunComposer';
 import { Glyph } from './Glyph';
 import { PERSONAS, type Persona } from '@/lib/personas';
 import type { Card as CardRow, Run } from '@/lib/insforge';
@@ -83,7 +84,21 @@ export function Feed({ initialRuns, initialCards, initialRunId, orgName, orgSlug
             </div>
           </div>
         )}
+
+        {/* Spacer so the sticky composer never overlaps the last card. */}
+        {runId && <div className="h-44" aria-hidden />}
       </main>
+
+      {/* Sticky chat composer — anyone in the org can drop a follow-up onto
+          this run. New cards stream into every viewer's feed within 2 s.
+          Pinned to viewport bottom so it stays reachable as the feed grows. */}
+      {runId && (
+        <div className="fixed inset-x-0 bottom-0 z-30 backdrop-blur-md bg-[var(--ink-0)]/90 hairline-t">
+          <div className="max-w-[1080px] mx-auto px-6 py-4">
+            <RunComposer runId={runId} viewer={viewer} />
+          </div>
+        </div>
+      )}
 
       <footer className="hairline-t mt-16">
         <div className="max-w-[1080px] mx-auto px-6 py-6 flex items-center justify-between">
