@@ -31,8 +31,15 @@ export function Feed({ initialRuns, initialCards, initialRunId, orgName, orgSlug
   const viewer = PERSONAS.find(p => p.key === viewerKey)!;
   const activeRun = runs.find(r => r.id === runId);
 
+  // Adaptive poll: drop to 500ms while a card is mid-stream so the UI
+  // shows token-by-token "typing" growth, settle back to 2s otherwise.
+  const isStreaming = cards.some(
+    (c) => c.card_type === 'agent_reply' && (c.body as { streaming?: boolean } | null)?.streaming === true,
+  );
+
   useEffect(() => {
     if (!runId) return;
+    const interval = isStreaming ? 500 : 2000;
     const t = setInterval(async () => {
       const [c, r] = await Promise.all([
         fetch(`/api/runs/${runId}/cards`, { cache: 'no-store' }),
@@ -46,9 +53,9 @@ export function Feed({ initialRuns, initialCards, initialRunId, orgName, orgSlug
         const d = await r.json();
         startTransition(() => setRuns(d.runs ?? []));
       }
-    }, 2000);
+    }, interval);
     return () => clearInterval(t);
-  }, [runId]);
+  }, [runId, isStreaming]);
 
   return (
     <div className="min-h-screen relative">

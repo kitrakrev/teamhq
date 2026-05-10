@@ -15,12 +15,14 @@ the card read-only with full context.
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from typing import Any
 
 import shutil
 import subprocess
+import urllib.request
 
 from . import llm
 from .insforge import _req as ifg
@@ -60,6 +62,178 @@ def _ask_claude_or_gateway(system_prompt: str, user_prompt: str) -> str:
     except Exception as e:
         print(f"[conversation] gateway failed: {e}")
         return ""
+
+
+def _stream_via_tunnel(
+    *, tunnel_url: str, tunnel_secret: str,
+    system_prompt: str, user_prompt: str,
+    session_id: str | None, on_token,
+):
+    """POST to the tunnel's /chat SSE endpoint, parse the same NDJSON we'd
+    get from local `claude -p`. Tunnel just proxies stdout.
+
+    URL handling: caller may pass either the bare host (https://x.ngrok.app)
+    or include the path (.../chat). We append /chat only if it's missing,
+    so the env var can be either form.
+    """
+    url = tunnel_url.rstrip("/")
+    if not url.endswith("/chat"):
+        url = url + "/chat"
+
+    payload = json.dumps({
+        "prompt": user_prompt,
+        "system_prompt": system_prompt,
+        "session_id": session_id,
+    }).encode()
+
+    req = urllib.request.Request(
+        url, data=payload, method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-TeamHQ-Auth": tunnel_secret,
+            "Accept": "text/event-stream",
+        },
+    )
+
+    full_text_parts: list[str] = []
+    new_session_id: str | None = None
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            buf = ""
+            for raw in resp:
+                buf += raw.decode("utf-8", errors="replace")
+                while "\n\n" in buf:
+                    chunk, buf = buf.split("\n\n", 1)
+                    for line in chunk.splitlines():
+                        if not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[[DONE]]":
+                            return "".join(full_text_parts), new_session_id
+                        try:
+                            ev = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+                        sid = ev.get("session_id")
+                        if sid:
+                            new_session_id = sid
+                        ev_type = ev.get("type")
+                        if ev_type == "stream_event":
+                            inner = ev.get("event") or {}
+                            if inner.get("type") == "content_block_delta":
+                                delta = inner.get("delta") or {}
+                                if delta.get("type") == "text_delta":
+                                    txt = delta.get("text") or ""
+                                    if txt:
+                                        full_text_parts.append(txt)
+                                        try:
+                                            on_token(txt)
+                                        except Exception as e:
+                                            print(f"[tunnel] on_token raised: {e}")
+                        elif ev_type == "assistant":
+                            msg = ev.get("message") or {}
+                            for blk in msg.get("content", []):
+                                if blk.get("type") == "text" and blk.get("text"):
+                                    full_text_parts = [blk["text"]]
+    except Exception as e:
+        print(f"[tunnel] error: {e}")
+
+    return "".join(full_text_parts), new_session_id
+
+
+def stream_claude(
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    session_id: str | None = None,
+    on_token,
+):
+    """Spawn `claude -p` in stream-json mode, parse NDJSON live, fire
+    on_token(text_chunk) for each text_delta event. Returns the final
+    full text + claude's session_id (so caller can reuse the same
+    session for multi-turn continuity).
+
+    Dispatch order:
+      1. Remote tunnel — if CLAUDE_TUNNEL_URL + TEAMHQ_TUNNEL_SECRET are set,
+         POST to <url>/chat and consume the SSE stream. Lets Vercel-side
+         workers reach the laptop's `claude` CLI through ngrok.
+      2. Local subprocess — direct `claude -p` if the binary is on PATH.
+
+    Bidirectional in spirit: stdout NDJSON = WebSocket-equivalent.
+    Each text_delta arrives as Claude generates it.
+    """
+    tunnel_url = os.environ.get("CLAUDE_TUNNEL_URL")
+    tunnel_secret = os.environ.get("TEAMHQ_TUNNEL_SECRET")
+    if tunnel_url and tunnel_secret:
+        return _stream_via_tunnel(
+            tunnel_url=tunnel_url, tunnel_secret=tunnel_secret,
+            system_prompt=system_prompt, user_prompt=user_prompt,
+            session_id=session_id, on_token=on_token,
+        )
+
+    if not shutil.which("claude"):
+        return "", None
+
+    cmd = [
+        "claude", "-p", user_prompt,
+        "--append-system-prompt", system_prompt,
+        "--output-format", "stream-json",
+        "--include-partial-messages",
+        "--verbose",  # required when --output-format=stream-json --print
+    ]
+    if session_id:
+        cmd.extend(["--session-id", session_id])
+
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1,
+    )
+
+    full_text_parts: list[str] = []
+    new_session_id: str | None = None
+    try:
+        if proc.stdout is None:
+            return "", None
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            # Capture session id from any event so caller can resume next turn.
+            sid = ev.get("session_id")
+            if sid:
+                new_session_id = sid
+            ev_type = ev.get("type")
+            if ev_type == "stream_event":
+                inner = ev.get("event") or {}
+                if inner.get("type") == "content_block_delta":
+                    delta = inner.get("delta") or {}
+                    if delta.get("type") == "text_delta":
+                        chunk = delta.get("text") or ""
+                        if chunk:
+                            full_text_parts.append(chunk)
+                            try:
+                                on_token(chunk)
+                            except Exception as e:
+                                print(f"[stream_claude] on_token raised: {e}")
+            elif ev_type == "assistant":
+                # Final assistant message — content array has full text.
+                msg = ev.get("message") or {}
+                for blk in msg.get("content", []):
+                    if blk.get("type") == "text" and blk.get("text"):
+                        # Prefer this canonical text over concat'd deltas.
+                        full_text_parts = [blk["text"]]
+        proc.wait(timeout=120)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+    except Exception as e:
+        print(f"[stream_claude] error: {e}")
+        proc.kill()
+
+    return "".join(full_text_parts), new_session_id
 
 
 @dataclass

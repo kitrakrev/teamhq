@@ -31,6 +31,9 @@ def _req(method: str, path: str, body: Any | None = None) -> Any:
     headers = {
         "x-api-key": _key(),
         "Content-Type": "application/json",
+        # InsForge follows PostgREST conventions — without this header POSTs
+        # return [] and we lose the auto-generated id/created_at fields.
+        "Prefer": "return=representation",
     }
     data = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(_url() + path, data=data, headers=headers, method=method)
