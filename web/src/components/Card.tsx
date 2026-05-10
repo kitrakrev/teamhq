@@ -14,6 +14,16 @@ type Source = {
   channel?: string | null;
 };
 
+type AcceptanceCriterion = {
+  id: string;
+  statement: string;
+  kind: 'test' | 'check' | 'review' | string;
+  test_command?: string | null;
+  expected?: string | null;
+  owner_role?: string;
+  status?: 'pending' | 'passed' | 'failed' | 'waived' | string;
+};
+
 type CardBody = {
   answer?: string;
   documents?: Source[];
@@ -34,21 +44,25 @@ type CardBody = {
   answered_by?: string;
   answered_at?: string;
   choice?: string;
+  // acceptance_criteria card fields
+  feature?: string;
+  criteria?: AcceptanceCriterion[];
 };
 
 const TYPE_CONFIG: Record<string, { glyph: GlyphKey; label: string }> = {
-  trigger:          { glyph: 'Trigger',  label: 'Trigger' },
-  team_plan:        { glyph: 'Plan',     label: 'Team Plan' },
-  world_ctx:        { glyph: 'Doc',      label: 'World Context' },
-  sandbox:          { glyph: 'Sandbox',  label: 'Sandbox' },
-  test_result:      { glyph: 'Check',    label: 'Test Result' },
-  pr_pending:       { glyph: 'Pencil',   label: 'PR Pending' },
-  pr_opened:        { glyph: 'Pr',       label: 'PR Opened' },
-  conflict:         { glyph: 'Conflict', label: 'Conflict' },
-  question:         { glyph: 'Q',        label: 'Question' },
-  approval_request: { glyph: 'Lock',     label: 'Approval' },
-  override:         { glyph: 'Override', label: 'Override' },
-  audit:            { glyph: 'Audit',    label: 'Audit' },
+  trigger:              { glyph: 'Trigger',  label: 'Trigger' },
+  team_plan:            { glyph: 'Plan',     label: 'Team Plan' },
+  world_ctx:            { glyph: 'Doc',      label: 'World Context' },
+  sandbox:              { glyph: 'Sandbox',  label: 'Sandbox' },
+  test_result:          { glyph: 'Check',    label: 'Test Result' },
+  pr_pending:           { glyph: 'Pencil',   label: 'PR Pending' },
+  pr_opened:            { glyph: 'Pr',       label: 'PR Opened' },
+  conflict:             { glyph: 'Conflict', label: 'Conflict' },
+  question:             { glyph: 'Q',        label: 'Question' },
+  approval_request:     { glyph: 'Lock',     label: 'Approval' },
+  override:             { glyph: 'Override', label: 'Override' },
+  audit:                { glyph: 'Audit',    label: 'Audit' },
+  acceptance_criteria:  { glyph: 'Check',    label: 'Acceptance Criteria' },
 };
 
 type Props = {
@@ -151,6 +165,11 @@ export function Card({ card, viewer, index = 0 }: Props) {
             answeredAt={body.answered_at}
             viewer={viewer}
           />
+        )}
+
+        {/* Acceptance criteria card — render checklist */}
+        {card.card_type === 'acceptance_criteria' && body.criteria && body.criteria.length > 0 && (
+          <AcceptanceCriteriaBlock feature={body.feature} criteria={body.criteria} />
         )}
 
         {/* Affected paths — code chips */}
@@ -457,6 +476,85 @@ function ActionButton({
       <G size={10} className={kind === 'comment' ? '' : ''} style={{ color: config.color } as React.CSSProperties} />
       {busy ? '…' : config.label}
     </button>
+  );
+}
+
+function AcceptanceCriteriaBlock({
+  feature,
+  criteria,
+}: {
+  feature?: string;
+  criteria: AcceptanceCriterion[];
+}) {
+  const TEAM_FROM_ROLE = (role?: string) => {
+    if (!role) return null;
+    const m = role.match(/^team_lead:(\w+)$/);
+    return m ? m[1] : null;
+  };
+  const statusInk = (s?: string) => {
+    if (s === 'passed') return 'var(--ok)';
+    if (s === 'failed') return 'var(--err)';
+    if (s === 'waived') return 'var(--ink-7)';
+    return 'var(--paper-muted)';
+  };
+
+  return (
+    <div className="mt-2 space-y-3">
+      {feature && (
+        <p className="font-display italic text-[15px] text-[var(--paper)] leading-snug">
+          “{feature}”
+        </p>
+      )}
+      <div className="smallcaps text-[var(--ink-7)]">
+        Definition of done · {criteria.length} item{criteria.length === 1 ? '' : 's'}
+      </div>
+      <ol className="space-y-2.5 pl-0">
+        {criteria.map((c, i) => {
+          const team = TEAM_FROM_ROLE(c.owner_role);
+          const teamInk = team ? TEAM_INK[team] : 'var(--paper)';
+          const teamLabel = team ? TEAM_LABEL[team] : null;
+          return (
+            <li key={c.id ?? i} className="hairline px-3 py-2.5 flex items-start gap-3">
+              <span className="footnote-num shrink-0 mt-0.5">{i + 1}</span>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="text-[13.5px] text-[var(--ink-12)] leading-snug">
+                  {c.statement}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[10.5px]">
+                  <span
+                    className="smallcaps"
+                    style={{ color: statusInk(c.status) }}
+                  >
+                    {c.status ?? 'pending'}
+                  </span>
+                  <span className="text-[var(--ink-6)]">·</span>
+                  <span className="smallcaps text-[var(--ink-8)]">{c.kind}</span>
+                  {teamLabel && (
+                    <>
+                      <span className="text-[var(--ink-6)]">·</span>
+                      <span className="smallcaps" style={{ color: teamInk }}>
+                        owner {teamLabel}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {c.test_command && (
+                  <code className="block font-mono text-[11.5px] text-[var(--ink-10)] bg-[var(--ink-3)] px-2 py-1 mt-1 leading-snug whitespace-pre-wrap">
+                    {c.test_command}
+                  </code>
+                )}
+                {c.expected && (
+                  <div className="text-[11.5px] text-[var(--ink-9)]">
+                    <span className="smallcaps text-[var(--ink-7)] mr-1">expect</span>
+                    <span className="font-mono">{c.expected}</span>
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

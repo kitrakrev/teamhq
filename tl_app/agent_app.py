@@ -25,6 +25,15 @@ from tensorlake.applications import application, function, Image  # noqa: E402
 # Tensorlake builds this once; subsequent invocations reuse the layer.
 agent_image = (
     Image()
+    # gh CLI + git so the PR-opener path inside agent/loop.py works.
+    .run("apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates gnupg && rm -rf /var/lib/apt/lists/*")
+    .run(
+        "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | "
+        "dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && "
+        'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] '
+        'https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && '
+        "apt-get update && apt-get install -y gh && rm -rf /var/lib/apt/lists/*"
+    )
     .run(
         "pip install --no-cache-dir "
         "hyperspell==0.37.0 "
@@ -38,38 +47,38 @@ agent_image = (
     .env("PYTHONPATH", "/app")
 )
 
-from agent.loop import TriggerSpec, run as run_loop  # noqa: E402
-
-
-SCENARIOS: dict[str, TriggerSpec] = {
-    "openai-bump": TriggerSpec(
-        repo="kitrakrev/teamhq-hero",
-        trigger_type="ui",
-        trigger_source="openai==1.0.0 released — bump from 0.28",
-        affected_paths=["src/llm_client.py", "src/retry_wrapper.py"],
-    ),
-    "fastapi-go": TriggerSpec(
-        repo="kitrakrev/teamhq-hero",
-        trigger_type="ui",
-        trigger_source="Proposal: port FastAPI service to Go for cost/perf",
-        affected_paths=[
+# Scenario templates — keep as plain dicts so module import never touches
+# `agent.*`; we hydrate to TriggerSpec inside the function call (after env +
+# imports are guaranteed available).
+SCENARIO_TEMPLATES: dict[str, dict] = {
+    "openai-bump": {
+        "repo": "kitrakrev/teamhq-hero",
+        "trigger_type": "ui",
+        "trigger_source": "openai==1.0.0 released — bump from 0.28",
+        "affected_paths": ["src/llm_client.py", "src/retry_wrapper.py"],
+    },
+    "fastapi-go": {
+        "repo": "kitrakrev/teamhq-hero",
+        "trigger_type": "ui",
+        "trigger_source": "Proposal: port FastAPI service to Go for cost/perf",
+        "affected_paths": [
             "src/api/main.py",
             "src/ml/inference_client.py",
             "src/infra/Dockerfile",
             "frontend/src/api-client.ts",
         ],
-    ),
-    "react-nextjs": TriggerSpec(
-        repo="kitrakrev/teamhq-hero",
-        trigger_type="ui",
-        trigger_source="Proposal: migrate React CRA to Next.js App Router",
-        affected_paths=[
+    },
+    "react-nextjs": {
+        "repo": "kitrakrev/teamhq-hero",
+        "trigger_type": "ui",
+        "trigger_source": "Proposal: migrate React CRA to Next.js App Router",
+        "affected_paths": [
             "frontend/package.json",
             "frontend/src/App.tsx",
             "frontend/src/api-client.ts",
             "src/infra/Dockerfile",
         ],
-    ),
+    },
 }
 
 
@@ -82,29 +91,46 @@ SCENARIOS: dict[str, TriggerSpec] = {
         "INSFORGE_PROJECT_URL",
         "INSFORGE_ACCESS_API_KEY",
         "ORG_ID",
+        "TENSORLAKE_API_KEY",
     ],
 )
 def run_teamhq_scenario(scenario: str, org_id: str | None = None, project_id: str | None = None) -> dict:
-    """Execute one TeamHQ scenario end-to-end. Returns the final run row."""
-    if scenario not in SCENARIOS:
-        return {"error": f"unknown scenario: {scenario}"}
+    """Execute one TeamHQ scenario end-to-end. Returns the final run row.
 
-    base = SCENARIOS[scenario]
-    trigger = TriggerSpec(
-        repo=base.repo,
-        trigger_type=base.trigger_type,
-        trigger_source=base.trigger_source,
-        affected_paths=list(base.affected_paths),
-        org_id=org_id,
-        project_id=project_id,
-    )
-    final = run_loop(trigger)
-    return {
-        "ok": True,
-        "run_id": final.get("id"),
-        "status": final.get("status"),
-        "pr_url": final.get("pr_url") or None,
-    }
+    Errors are captured and returned as {error, traceback} so the request
+    surfaces a useful message to the caller instead of `function_error`.
+    """
+    import traceback as _tb
+    try:
+        if scenario not in SCENARIO_TEMPLATES:
+            return {"error": f"unknown scenario: {scenario}"}
+        # Import inside the function so a bad `agent/` import surfaces as a
+        # readable error here rather than a container startup failure.
+        from agent.loop import TriggerSpec, run as run_loop
+        base = SCENARIO_TEMPLATES[scenario]
+        trigger = TriggerSpec(
+            repo=base["repo"],
+            trigger_type=base["trigger_type"],
+            trigger_source=base["trigger_source"],
+            affected_paths=list(base["affected_paths"]),
+            org_id=org_id,
+            project_id=project_id,
+        )
+        # Demo invocations from UI don't block on quorum so cards stream in.
+        os.environ.setdefault("TEAMHQ_BLOCK_UNTIL_APPROVED", "0")
+        final = run_loop(trigger)
+        return {
+            "ok": True,
+            "run_id": final.get("id"),
+            "status": final.get("status"),
+            "pr_url": final.get("pr_url") or None,
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"{type(e).__name__}: {e}",
+            "traceback": _tb.format_exc()[-2000:],
+        }
 
 
 if __name__ == "__main__":
@@ -112,4 +138,4 @@ if __name__ == "__main__":
     from tensorlake.applications import run_local_application
 
     out = run_local_application(run_teamhq_scenario, "fastapi-go", os.environ.get("ORG_ID"), None)
-    print(out.output())
+    print(out.output())  # type: ignore[attr-defined]

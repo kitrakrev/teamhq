@@ -1,6 +1,9 @@
-// POST /api/run-scenario — inserts a runs row scoped to a project + scenario.
-// The agent loop runs separately; this just primes the timeline so the UI can
-// redirect to the run detail page immediately.
+// POST /api/run-scenario — inserts a runs row + spawns the agent process so
+// cards stream in real-time. The Python entrypoint is `scripts/run_scenario.py`
+// which loads .env, picks the canned TriggerSpec, and runs the loop.
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { NextResponse } from 'next/server';
 import { ifg } from '@/lib/insforge';
 import { getSession } from '@/lib/session';
@@ -58,8 +61,39 @@ export async function POST(req: Request) {
   const slugMatch = referer.match(/\/orgs\/([^/]+)\//);
   const slug = slugMatch?.[1] ?? 'acme-eng';
 
+  // Real fix for "/api/run-scenario doesn't actually invoke the agent":
+  // spawn the Python loop detached so the request returns instantly while
+  // cards stream into the run we just inserted. Only runs in dev / local
+  // (not on Vercel — there the Tensorlake-hosted variant takes over).
+  spawnAgent(scenarioKey, orgId, projectId);
+
   return NextResponse.json({
     runId: run.id,
     redirect: `/orgs/${slug}/runs/${run.id}`,
   });
+}
+
+function spawnAgent(scenario: string, orgId: string, projectId: string) {
+  // Repo root is two levels above /web in dev. On Vercel, FS is read-only
+  // and Python isn't available — caller should rely on the Tensorlake app.
+  const repoRoot = join(process.cwd(), '..');
+  const script = join(repoRoot, 'scripts', 'run_scenario.py');
+  const venvPython = join(repoRoot, '.venv', 'bin', 'python');
+  const py = existsSync(venvPython) ? venvPython : 'python3';
+  if (!existsSync(script)) {
+    console.warn(`[run-scenario] script missing at ${script} — agent NOT spawned`);
+    return;
+  }
+  try {
+    const child = spawn(py, [script, scenario, orgId, projectId], {
+      cwd: repoRoot,
+      detached: true,
+      stdio: 'ignore',
+      env: process.env,
+    });
+    child.unref();
+    console.log(`[run-scenario] spawned ${py} ${script} ${scenario} ${orgId} ${projectId} (pid=${child.pid})`);
+  } catch (e) {
+    console.error('[run-scenario] spawn failed', e);
+  }
 }

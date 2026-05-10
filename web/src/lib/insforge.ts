@@ -211,6 +211,38 @@ export const ifg = {
     const q = userId ? `?user_id=eq.${userId}` : '';
     return get<OAuthToken[]>(`/api/database/records/oauth_tokens${q}`);
   },
+  async recordOAuthToken(input: {
+    user_id: string;
+    provider: string;
+    access_token: string;
+    github_login?: string | null;
+    scopes?: string | null;
+  }): Promise<OAuthToken> {
+    // Upsert by (user_id, provider) — overwrite token + scopes if user
+    // re-auths with broader scopes.
+    const existing = await get<OAuthToken[]>(
+      `/api/database/records/oauth_tokens?user_id=eq.${input.user_id}&provider=eq.${encodeURIComponent(input.provider)}`,
+    );
+    if (existing[0]) {
+      const patched = await patch<OAuthToken[] | OAuthToken>(
+        `/api/database/records/oauth_tokens?id=eq.${existing[0].id}`,
+        {
+          access_token: input.access_token,
+          github_login: input.github_login ?? existing[0].github_login,
+          scopes: input.scopes ?? existing[0].scopes,
+        },
+      );
+      return Array.isArray(patched) ? patched[0] : patched;
+    }
+    const created = await post<OAuthToken[] | OAuthToken>('/api/database/records/oauth_tokens', {
+      user_id: input.user_id,
+      provider: input.provider,
+      access_token: input.access_token,
+      github_login: input.github_login ?? null,
+      scopes: input.scopes ?? null,
+    });
+    return Array.isArray(created) ? created[0] : created;
+  },
   async upsertOrgRepo(orgId: string, input: { github_full_name: string; default_branch?: string | null }): Promise<OrgRepo> {
     if (!orgId) throw new Error('orgId missing');
     const existing = await get<OrgRepo[]>(
