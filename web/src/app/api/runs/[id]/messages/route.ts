@@ -93,8 +93,11 @@ async function streamClaudeReply(args: StreamArgs) {
   const systemPrompt =
     "You are TeamHQ's conversational engineering agent. Reply in plain prose " +
     '(one short paragraph). At the very end of your reply, on a new line, append a route tag: ' +
-    '<route>{"kind":"answer|question|plan_revision|comment|noop","to_user_email":"<email or null>",' +
+    '<route>{"kind":"answer|question|plan_revision|comment|noop|action","to_user_email":"<email or null>",' +
     '"to_team":"backend|ds|ui|devops or null","rationale":"<why>"}</route>. ' +
+    'Choose `action` ONLY if the user explicitly asks the agent to write/edit code, ' +
+    'open a PR, add a file, or modify the repo. For Q&A, design discussion, or routing, ' +
+    'use answer/question/comment. ' +
     'Personas: backend=sarah@teamhq.demo, ds=iris@teamhq.demo, ui=alice@teamhq.demo, ' +
     'devops=grace@teamhq.demo, architect=dan@teamhq.demo, pm=frank@teamhq.demo.';
 
@@ -140,6 +143,9 @@ async function streamClaudeReply(args: StreamArgs) {
         project_id: args.projectId,
         source_card_id: args.sourceCardId,
         author_name: args.authorName,
+        // Forward the raw user message so a follow-up code action can
+        // pass it straight to `claude -p` against the cloned repo.
+        user_text: args.userText,
       }),
     });
   } catch (e) {
