@@ -8,28 +8,49 @@ import { NextResponse } from 'next/server';
 import { ifg } from '@/lib/insforge';
 import { getSession } from '@/lib/session';
 
-const SCENARIO_LABELS: Record<string, string> = {
-  'fastapi-go': 'FastAPI → Go',
-  'openai-bump': 'openai SDK upgrade',
-  'react-nextjs': 'React → Next.js',
-};
+// Run trigger.
+// - Real users: project MUST have at least one repo attached; otherwise we
+//   422 the caller and surface a "go to /onboard" hint.
+// - Demo personas (cookie-only auth): fall back to kitrakrev/teamhq-hero so
+//   the canned demo flow keeps working without forcing onboarding.
+// - Accepts free-text `prompt` (preferred) OR a legacy canned `scenario` key.
+
+import { cookies } from 'next/headers';
+
+const DEMO_FALLBACK_REPO = 'kitrakrev/teamhq-hero';
 
 export const dynamic = 'force-dynamic';
+
+const LEGACY_SCENARIO_LABELS: Record<string, string> = {
+  'fastapi-go': 'Port FastAPI service to Go for cost/perf',
+  'openai-bump': 'Bump openai SDK and migrate call sites',
+  'react-nextjs': 'Migrate React CRA to Next.js App Router',
+};
 
 export async function POST(req: Request) {
   const session = await getSession();
   const orgId = session?.orgId ?? null;
-  let body: { projectId?: string; scenario?: string };
+  if (!orgId) return NextResponse.json({ error: 'no org context — sign in first' }, { status: 401 });
+
+  let body: { projectId?: string; scenario?: string; prompt?: string };
   try {
-    body = (await req.json()) as { projectId?: string; scenario?: string };
+    body = (await req.json()) as { projectId?: string; scenario?: string; prompt?: string };
   } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
   const projectId = body.projectId;
-  const scenarioKey = body.scenario ?? '';
-  const label = SCENARIO_LABELS[scenarioKey];
-  if (!projectId || !label) {
-    return NextResponse.json({ error: 'projectId + scenario required' }, { status: 400 });
+  if (!projectId) {
+    return NextResponse.json({ error: 'projectId required' }, { status: 400 });
+  }
+
+  const promptRaw = (body.prompt ?? '').trim();
+  const legacyLabel = body.scenario ? LEGACY_SCENARIO_LABELS[body.scenario] : undefined;
+  const triggerSource = promptRaw || legacyLabel;
+  if (!triggerSource) {
+    return NextResponse.json(
+      { error: 'prompt (free text) or a legacy scenario key required' },
+      { status: 400 },
+    );
   }
 
   const project = await ifg.getProject(orgId, projectId).catch(() => null);
@@ -37,45 +58,66 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'project not found' }, { status: 404 });
   }
 
-  // Pick the first attached repo (if any) to seed run.repo. Falls back to
-  // a placeholder so the row still inserts.
+  // Resolve the project's repos. NO hardcoded fallback — if the user hasn't
+  // attached a repo, send them to /onboard.
   const projectRepos = await ifg.listProjectRepos(projectId).catch(() => []);
   const orgRepos = await ifg.listOrgRepos(orgId).catch(() => []);
   const repoById = new Map(orgRepos.map((r) => [r.id, r]));
-  const repoFull =
-    projectRepos
-      .map((pr) => repoById.get(pr.org_repo_id)?.github_full_name)
-      .find(Boolean) ?? 'kitrakrev/teamhq-hero';
+  const repos = projectRepos
+    .map((pr) => repoById.get(pr.org_repo_id)?.github_full_name)
+    .filter((x): x is string => Boolean(x));
 
-  if (!orgId) return NextResponse.json({ error: 'no org context' }, { status: 400 });
+  // Demo personas (auth via teamhq_demo_persona cookie, no real GitHub
+  // OAuth) get the seeded fallback repo so the demo flow works without
+  // onboarding. Real signups must attach a repo first.
+  const jar = await cookies();
+  const isDemoPersona = Boolean(jar.get('teamhq_demo_persona')?.value);
+
+  let targetRepo: string;
+  if (repos.length > 0) {
+    targetRepo = repos[0];
+  } else if (isDemoPersona) {
+    targetRepo = DEMO_FALLBACK_REPO;
+    console.log(`[run-scenario] demo persona; falling back to ${DEMO_FALLBACK_REPO}`);
+  } else {
+    return NextResponse.json(
+      {
+        error: 'no repos attached to this project',
+        hint: 'Open the project, attach at least one repo (or finish /onboard step 2 first).',
+      },
+      { status: 422 },
+    );
+  }
+
   const run = await ifg.createRun(orgId, {
-    repo: repoFull,
-    trigger_type: 'scenario',
-    trigger_source: `Project: ${project.name} · Scenario: ${label}`,
+    repo: targetRepo,
+    trigger_type: promptRaw ? 'prompt' : 'scenario',
+    trigger_source: `Project: ${project.name} · ${triggerSource}`,
     status: 'starting',
     project_id: projectId,
   });
 
-  // Best-effort detect the org slug for the redirect — UI passes it via referer.
-  const referer = req.headers.get('referer') ?? '';
-  const slugMatch = referer.match(/\/orgs\/([^/]+)\//);
-  const slug = slugMatch?.[1] ?? 'acme-eng';
-
-  // Real fix for "/api/run-scenario doesn't actually invoke the agent":
-  // spawn the Python loop detached so the request returns instantly while
-  // cards stream into the run we just inserted. Only runs in dev / local
-  // (not on Vercel — there the Tensorlake-hosted variant takes over).
-  spawnAgent(scenarioKey, orgId, projectId);
+  spawnAgent({
+    orgId,
+    projectId,
+    runId: run.id,
+    repo: targetRepo,
+    prompt: triggerSource,
+  });
 
   return NextResponse.json({
     runId: run.id,
-    redirect: `/orgs/${slug}/runs/${run.id}`,
+    redirect: `/?run=${run.id}`,
   });
 }
 
-function spawnAgent(scenario: string, orgId: string, projectId: string) {
-  // Repo root is two levels above /web in dev. On Vercel, FS is read-only
-  // and Python isn't available — caller should rely on the Tensorlake app.
+function spawnAgent(args: {
+  orgId: string;
+  projectId: string;
+  runId: string;
+  repo: string;
+  prompt: string;
+}) {
   const repoRoot = join(process.cwd(), '..');
   const script = join(repoRoot, 'scripts', 'run_scenario.py');
   const venvPython = join(repoRoot, '.venv', 'bin', 'python');
@@ -85,14 +127,18 @@ function spawnAgent(scenario: string, orgId: string, projectId: string) {
     return;
   }
   try {
-    const child = spawn(py, [script, scenario, orgId, projectId], {
-      cwd: repoRoot,
-      detached: true,
-      stdio: 'ignore',
-      env: process.env,
-    });
+    const child = spawn(
+      py,
+      [script, '--repo', args.repo, '--prompt', args.prompt, '--org', args.orgId, '--project', args.projectId, '--run', args.runId],
+      {
+        cwd: repoRoot,
+        detached: true,
+        stdio: 'ignore',
+        env: process.env,
+      },
+    );
     child.unref();
-    console.log(`[run-scenario] spawned ${py} ${script} ${scenario} ${orgId} ${projectId} (pid=${child.pid})`);
+    console.log(`[run-scenario] spawned pid=${child.pid} repo=${args.repo}`);
   } catch (e) {
     console.error('[run-scenario] spawn failed', e);
   }

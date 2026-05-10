@@ -16,5 +16,16 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
   const requested = sp.run && runs.find((r) => r.id === sp.run) ? sp.run : null;
   const initialRunId = requested ?? runs[0]?.id ?? null;
   const cards = initialRunId ? await ifg.listCards(orgId, initialRunId) : [];
-  return <Feed initialRuns={runs} initialCards={cards} initialRunId={initialRunId} />;
+  // Resolve the viewer's org so Chrome links don't hardcode a slug.
+  const org = await ifg.getOrg(orgId).catch(() => null);
+  return (
+    <Feed
+      initialRuns={runs}
+      initialCards={cards}
+      initialRunId={initialRunId}
+      orgName={org?.name ?? 'Acme Eng'}
+      orgSlug={org?.slug ?? 'acme-eng'}
+      sessionEmail={session?.email ?? null}
+    />
+  );
 }

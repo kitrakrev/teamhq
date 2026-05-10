@@ -2,16 +2,10 @@
 // and the run history scoped to this project.
 import { notFound } from 'next/navigation';
 import { ifg } from '@/lib/insforge';
-import { ScenarioButton } from '@/components/projects/ScenarioButton';
+import { TriggerForm } from '@/components/projects/TriggerForm';
 import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
-
-const SCENARIOS = [
-  { key: 'fastapi-go' as const, emoji: '🦫', title: 'FastAPI → Go', subtitle: 'Port a Python service to Go w/ parity tests.' },
-  { key: 'openai-bump' as const, emoji: '🧠', title: 'openai SDK upgrade', subtitle: 'Bump openai-python and migrate call sites.' },
-  { key: 'react-nextjs' as const, emoji: '⚛️', title: 'React → Next.js', subtitle: 'Migrate a CRA app to Next.js App Router.' },
-];
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -73,18 +67,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         </section>
 
         <section className="mt-10">
-          <h2 className="text-sm font-semibold text-gray-700 tracking-tight">Trigger a scenario</h2>
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {SCENARIOS.map((s) => (
-              <ScenarioButton
-                key={s.key}
-                projectId={project.id}
-                scenarioKey={s.key}
-                title={s.title}
-                subtitle={s.subtitle}
-                emoji={s.emoji}
-              />
-            ))}
+          <h2 className="text-sm font-semibold text-gray-700 tracking-tight">Trigger a change</h2>
+          <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+            Describe what you want shipped. The agent will route per-role questions, draft per-team
+            plans grounded in your team brain, and open a real PR after quorum approval.
+          </p>
+          <div className="mt-4">
+            <TriggerForm
+              projectId={project.id}
+              hasRepos={scopedRepos.length > 0}
+              orgSlug={slug}
+            />
           </div>
         </section>
 
@@ -96,7 +89,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             )}
             {runs.map((run) => (
               <li key={run.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50/60">
-                <a href={`/orgs/${slug}/runs/${run.id}`} className="flex-1 min-w-0">
+                <a href={`/?run=${run.id}`} className="flex-1 min-w-0">
                   <div className="text-sm text-gray-900 truncate">{run.trigger_source ?? run.trigger_type}</div>
                   <div className="text-xs text-gray-500 truncate font-mono">{run.repo}</div>
                 </a>
