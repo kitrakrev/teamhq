@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamHQ</title><meta name="description" content="The engineering org&#x27;s command center for autonomous code change.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f6f2;--panel:#fff;--ink:#1d1d1f;--muted:#6b6b70;--line:#e3e1da;--accent:#00684a;--side:#0f1f1a;--sideink:#d7e7df}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121413;--panel:#1b1e1c;--ink:#ecece8;--muted:#9a9c98;--line:#2c302d;--accent:#4fc08d;--side:#0a1410}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--side);color:var(--sideink);padding:40px 16px 32px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+header .wrap{padding:0}
+header h1{color:#fff;margin:0 0 6px;font-size:32px;letter-spacing:-.01em}
+header p{margin:0 0 16px;opacity:.85;font-size:16px}
+.btns a{display:inline-block;margin:0 8px 8px 0;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #2f5a49;color:#fff}
+.btns a.pri{background:#00684a;border-color:#00684a}
+main{padding:24px 16px 40px}
+h2{font-size:19px;margin:28px 0 10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+ul{margin:6px 0;padding-left:20px}li{margin:4px 0}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flow span{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:6px 10px;font-size:13px}
+.flow i{color:var(--muted);font-style:normal}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}.tw{overflow-x:auto}
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12.5px;border:1px solid var(--line);margin:0 6px 6px 0;background:var(--panel)}
+.muted{color:var(--muted)}code{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+a{color:var(--accent)}footer{border-top:1px solid var(--line);padding:18px 16px;color:var(--muted);font-size:13px}
+@media (max-width:600px){header h1{font-size:26px}}
+</style></head><body>
+<header><div class="wrap"><h1>TeamHQ</h1><p>The engineering org&#x27;s command center for autonomous code change.</p>
+<div class="btns"><a class="pri" href="https://github.com/kitrakrev/teamhq">View on GitHub</a><a href="https://kitrakrev.github.io/">&larr; kitrakrev.github.io</a></div></div></header>
+<main class="wrap">
+<h2>What it does</h2><div class="card"><p>Coding agents work for one developer; TeamHQ is where the whole engineering org converges to decide what code change ships next. Built for the Nozomio Hackathon (Track 4: The Company Brain). Every change — an upstream release break, a product feature, a convention dispute — starts as a card that is visible to everyone, actionable by the right roles, synthesised from each team's brain, verified in a sandbox, and shipped by the agent of your choice.</p><ul><li>Live demo: <a href='https://web-nine-lemon-57.vercel.app'>web-nine-lemon-57.vercel.app</a></li><li>Target repo where the agent opens PRs: <a href='https://github.com/kitrakrev/teamhq-hero'>kitrakrev/teamhq-hero</a> (example: <a href='https://github.com/kitrakrev/teamhq-hero/pull/4'>PR #4</a>)</li></ul></div>
+<h2>How it works</h2><div class="card"><div class="flow"><span>Trigger</span> <i>&rarr;</i> <span>Acceptance criteria</span> <i>&rarr;</i> <span>Per-role questions</span> <i>&rarr;</i> <span>Per-team plans</span> <i>&rarr;</i> <span>Sandbox</span> <i>&rarr;</i> <span>Quorum gate</span> <i>&rarr;</i> <span>Real PR</span></div><ul><li>Each step emits a card to InsForge; the web UI polls and streams them every 2 s.</li><li>Per-team plans fuse each team's own brain (Hyperspell: Slack, Notion, GitHub, Linear) with world context from Nia and repo state.</li><li>The quorum gate is on by default: the PR cannot ship until every team lead approves their plan card.</li><li>A bundled MCP server exposes 7 tools so Claude Code, Codex, Cursor or Devin can act as the executor; decision history is durable in InsForge.</li></ul></div>
+
+<h2>Tech stack</h2><div><span class="pill">Python agent loop</span><span class="pill">Hyperspell</span><span class="pill">Nia</span><span class="pill">Tensorlake</span><span class="pill">InsForge</span><span class="pill">Next.js 16</span><span class="pill">Tailwind 4</span><span class="pill">Vercel</span><span class="pill">MCP</span></div>
+
+</main>
+<footer><div class="wrap">Source: <a href="https://github.com/kitrakrev/teamhq">github.com/kitrakrev/teamhq</a> &middot; <a href="https://kitrakrev.github.io/">kitrakrev.github.io</a></div></footer>
+</body></html>
